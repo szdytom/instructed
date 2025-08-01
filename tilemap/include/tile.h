@@ -6,40 +6,36 @@
 
 namespace istd {
 
-// Array of tile types
-constexpr const char *_tiles_types[] = {
-	"empty", "mountain", "wood", "sand", "water",
+enum class BaseTileType : std::uint8_t {
+	Land,
+	Mountain,
+	Sand,
+	Water,
+	Ice,
+	_count
 };
 
-constexpr std::size_t _tile_types_n
-	= sizeof(_tiles_types) / sizeof(_tiles_types[0]);
+enum class SurfaceTileType : std::uint8_t {
+	Empty,
+	Wood,
+	Snow,
+	Structure, // Indicates this tile is occupied by a player-built structure,
+	           // should never be natually generated.
+	_count
+};
+
+constexpr std::uint8_t base_tile_count
+	= static_cast<std::uint8_t>(BaseTileType::_count);
+
+constexpr std::uint8_t surface_tile_count
+	= static_cast<std::uint8_t>(SurfaceTileType::_count);
+
+static_assert(base_tile_count <= 16, "Base tile don't fit in 4 bits");
+static_assert(surface_tile_count <= 16, "Surface tile don't fit in 4 bits");
 
 struct Tile {
-	std::uint8_t type;
-
-	/**
-	 * @brief Contruct a Tile with the given type.
-	 * Use human readable strings as identifier in code without any runtime
-	 * overhead
-	 * @param type The tile type as a string
-	 */
-	static consteval Tile from_name(const char *name) {
-		// Find the index of the name in the _tiles_types array at compile time
-		for (std::size_t i = 0; i < _tile_types_n; ++i) {
-			const char *p = name;
-			const char *q = _tiles_types[i];
-			// Compare strings character by character
-			while (*p && *q && *p == *q) {
-				++p;
-				++q;
-			}
-			if (*p == '\0' && *q == '\0') {
-				return Tile{static_cast<std::uint8_t>(i)};
-			}
-		}
-
-		throw std::invalid_argument("Invalid tile type name");
-	}
+	BaseTileType base : 4;
+	SurfaceTileType surface : 4;
 };
 
 static_assert(sizeof(Tile) == 1);

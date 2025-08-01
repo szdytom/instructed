@@ -1,5 +1,5 @@
-#ifndef ISTD_TILEMAP_BIOME_H
-#define ISTD_TILEMAP_BIOME_H
+#ifndef TILEMAP_BIOME_H
+#define TILEMAP_BIOME_H
 
 #include <cstdint>
 #include <string_view>
@@ -16,21 +16,30 @@ enum class BiomeType : std::uint8_t {
 	TemperateRainforest = 5, // Temperate & Wet
 	Tundra = 6,              // Cold & Dry
 	Taiga = 7,               // Cold & Moderate
-	ColdRainforest = 8       // Cold & Wet
+	FrozenOcean = 8          // Cold & Wet
 };
 
 // Biome properties for terrain generation
 struct BiomeProperties {
-	// Terrain thresholds (0.0 - 1.0)
+	// Base terrain thresholds (0.0 - 1.0)
 	double water_threshold;
-	double sand_threshold;
-	double wood_threshold;
 	double mountain_threshold;
+	double sand_threshold;
+	double ice_threshold;
 
-	// Noise parameters
-	double scale;
-	int octaves;
-	double persistence;
+	// Surface coverage thresholds (0.0 - 1.0)
+	double wood_threshold;
+	double snow_threshold;
+
+	// Noise parameters for base terrain
+	double base_scale;
+	int base_octaves;
+	double base_persistence;
+
+	// Noise parameters for surface features
+	double surface_scale;
+	int surface_octaves;
+	double surface_persistence;
 
 	// Biome name for debugging
 	std::string_view name;

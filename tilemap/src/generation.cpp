@@ -7,38 +7,33 @@ namespace istd {
 
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
 	: config_(config)
-	, terrain_noise_(config.seed)
+	, base_noise_(config.seed)
+	, surface_noise_(config.seed + 500) // Different seed for surface features
 	, temperature_noise_(config.seed + 1000) // Different seed for temperature
 	, humidity_noise_(config.seed + 2000)    // Different seed for humidity
 {}
 
 void TerrainGenerator::generate_map(TileMap &tilemap) {
-	std::uint8_t map_size = tilemap.get_size();
-
 	// First, generate biome data for all chunks
-	generate_biomes(map_size);
+	generate_biomes(tilemap);
 
 	// Then generate terrain for each chunk
+	std::uint8_t map_size = tilemap.get_size();
 	for (std::uint8_t chunk_y = 0; chunk_y < map_size; ++chunk_y) {
 		for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
 			generate_chunk(tilemap, chunk_x, chunk_y);
 		}
 	}
-
-	// Clear biome data to free memory
-	chunk_biomes_.clear();
 }
 
-void TerrainGenerator::generate_biomes(std::uint8_t map_size) {
-	// Initialize biome data storage
-	chunk_biomes_.resize(map_size);
-	for (auto &row : chunk_biomes_) {
-		row.resize(map_size);
-	}
+void TerrainGenerator::generate_biomes(TileMap &tilemap) {
+	std::uint8_t map_size = tilemap.get_size();
 
 	// Generate biomes for each sub-chunk
 	for (std::uint8_t chunk_y = 0; chunk_y < map_size; ++chunk_y) {
 		for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
+			Chunk &chunk = tilemap.get_chunk(chunk_x, chunk_y);
+
 			for (std::uint8_t sub_y = 0; sub_y < 4; ++sub_y) {
 				for (std::uint8_t sub_x = 0; sub_x < 4; ++sub_x) {
 					// Calculate global position for this sub-chunk's center
@@ -53,9 +48,9 @@ void TerrainGenerator::generate_biomes(std::uint8_t map_size) {
 					auto [temperature, humidity]
 						= get_climate(global_x, global_y);
 
-					// Determine biome
+					// Determine biome and store directly in chunk
 					BiomeType biome = determine_biome(temperature, humidity);
-					chunk_biomes_[chunk_y][chunk_x][sub_y][sub_x] = biome;
+					chunk.biome[sub_y][sub_x] = biome;
 				}
 			}
 		}
@@ -65,11 +60,13 @@ void TerrainGenerator::generate_biomes(std::uint8_t map_size) {
 void TerrainGenerator::generate_chunk(
 	TileMap &tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y
 ) {
+	const Chunk &chunk = tilemap.get_chunk(chunk_x, chunk_y);
+
 	// Generate each sub-chunk with its corresponding biome
 	for (std::uint8_t sub_y = 0; sub_y < 4; ++sub_y) {
 		for (std::uint8_t sub_x = 0; sub_x < 4; ++sub_x) {
 			SubChunkPos sub_pos(sub_x, sub_y);
-			BiomeType biome = chunk_biomes_[chunk_y][chunk_x][sub_y][sub_x];
+			BiomeType biome = chunk.biome[sub_y][sub_x];
 			generate_subchunk(tilemap, chunk_x, chunk_y, sub_pos, biome);
 		}
 	}
@@ -94,14 +91,33 @@ void TerrainGenerator::generate_subchunk(
 			double global_y
 				= static_cast<double>(chunk_y * Chunk::size + local_y);
 
-			// Generate terrain noise value using biome-specific parameters
-			double noise_value = terrain_noise_.octave_noise(
-				global_x * properties.scale, global_y * properties.scale,
-				properties.octaves, properties.persistence
+			// Generate base terrain noise value
+			double base_noise_value = base_noise_.octave_noise(
+				global_x * properties.base_scale,
+				global_y * properties.base_scale, properties.base_octaves,
+				properties.base_persistence
 			);
 
-			// Determine tile type based on noise and biome properties
-			Tile tile = determine_tile_type(noise_value, properties);
+			// Generate surface feature noise value
+			double surface_noise_value = surface_noise_.octave_noise(
+				global_x * properties.surface_scale,
+				global_y * properties.surface_scale, properties.surface_octaves,
+				properties.surface_persistence
+			);
+
+			// Determine base terrain type
+			BaseTileType base_type
+				= determine_base_type(base_noise_value, properties);
+
+			// Determine surface feature type
+			SurfaceTileType surface_type = determine_surface_type(
+				surface_noise_value, properties, base_type
+			);
+
+			// Create tile with base and surface components
+			Tile tile;
+			tile.base = base_type;
+			tile.surface = surface_type;
 
 			// Set the tile
 			TilePos pos{chunk_x, chunk_y, local_x, local_y};
@@ -128,19 +144,39 @@ std::pair<double, double> TerrainGenerator::get_climate(
 	return {temperature, humidity};
 }
 
-Tile TerrainGenerator::determine_tile_type(
+BaseTileType TerrainGenerator::determine_base_type(
 	double noise_value, const BiomeProperties &properties
 ) const {
 	if (noise_value < properties.water_threshold) {
-		return Tile::from_name("water");
+		return BaseTileType::Water;
 	} else if (noise_value < properties.sand_threshold) {
-		return Tile::from_name("sand");
-	} else if (noise_value < properties.wood_threshold) {
-		return Tile::from_name("wood");
+		return BaseTileType::Sand;
 	} else if (noise_value < properties.mountain_threshold) {
-		return Tile::from_name("mountain");
+		return BaseTileType::Mountain;
+	} else if (properties.ice_threshold > 0.0
+	           && noise_value < properties.ice_threshold) {
+		return BaseTileType::Ice;
 	} else {
-		return Tile::from_name("empty");
+		return BaseTileType::Land;
+	}
+}
+
+SurfaceTileType TerrainGenerator::determine_surface_type(
+	double noise_value, const BiomeProperties &properties,
+	BaseTileType base_type
+) const {
+	// Don't place surface features on water or ice
+	if (base_type == BaseTileType::Water || base_type == BaseTileType::Ice) {
+		return SurfaceTileType::Empty;
+	}
+
+	// Check for surface features based on thresholds
+	if (noise_value < properties.wood_threshold) {
+		return SurfaceTileType::Wood;
+	} else if (noise_value < properties.snow_threshold) {
+		return SurfaceTileType::Snow;
+	} else {
+		return SurfaceTileType::Empty;
 	}
 }
 

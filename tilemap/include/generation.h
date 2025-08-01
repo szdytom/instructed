@@ -17,30 +17,16 @@ struct GenerationConfig {
 	// Climate noise parameters
 	double temperature_scale = 0.005; // Scale for temperature noise
 	double humidity_scale = 0.007;    // Scale for humidity noise
-
-	// Base terrain parameters (used as fallback)
-	double scale = 0.02;
-	int octaves = 4;
-	double persistence = 0.5;
-
-	// Legacy thresholds (for compatibility)
-	double water_threshold = 0.3;
-	double sand_threshold = 0.4;
-	double wood_threshold = 0.7;
-	double mountain_threshold = 0.8;
 };
 
 // Terrain generator class that manages the generation process
 class TerrainGenerator {
 private:
 	GenerationConfig config_;
-	PerlinNoise terrain_noise_;
-	PerlinNoise temperature_noise_;
-	PerlinNoise humidity_noise_;
-
-	// Biome data for current generation (discarded after completion)
-	std::vector<std::vector<std::array<std::array<BiomeType, 4>, 4>>>
-		chunk_biomes_;
+	PerlinNoise base_noise_;        // For base terrain generation
+	PerlinNoise surface_noise_;     // For surface feature generation
+	PerlinNoise temperature_noise_; // For temperature
+	PerlinNoise humidity_noise_;    // For humidity
 
 public:
 	/**
@@ -58,9 +44,9 @@ public:
 private:
 	/**
 	 * @brief Generate biome data for all chunks
-	 * @param map_size Number of chunks per side
+	 * @param tilemap The tilemap to generate biomes into
 	 */
-	void generate_biomes(std::uint8_t map_size);
+	void generate_biomes(TileMap &tilemap);
 
 	/**
 	 * @brief Generate terrain for a single chunk
@@ -96,13 +82,27 @@ private:
 	) const;
 
 	/**
-	 * @brief Determine tile type based on noise value and biome properties
-	 * @param noise_value Terrain noise value [0,1]
+	 * @brief Determine base terrain type based on noise value and biome
+	 * properties
+	 * @param noise_value Base terrain noise value [0,1]
 	 * @param properties Biome properties to use
-	 * @return The appropriate tile type
+	 * @return The appropriate base tile type
 	 */
-	Tile determine_tile_type(
+	BaseTileType determine_base_type(
 		double noise_value, const BiomeProperties &properties
+	) const;
+
+	/**
+	 * @brief Determine surface feature type based on noise value and biome
+	 * properties
+	 * @param noise_value Surface feature noise value [0,1]
+	 * @param properties Biome properties to use
+	 * @param base_type The base terrain type (affects surface placement)
+	 * @return The appropriate surface tile type
+	 */
+	SurfaceTileType determine_surface_type(
+		double noise_value, const BiomeProperties &properties,
+		BaseTileType base_type
 	) const;
 };
 
