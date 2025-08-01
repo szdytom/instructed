@@ -13,7 +13,9 @@ TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
 	, humidity_noise_(config.seed ^ humidity_seed_mask) {
 	// Calibrate the uniform base noise with the same parameters that will be
 	// used for generation
-	base_noise_.calibrate(config.base_scale, 3, 0.5);
+	base_noise_.calibrate(
+		config.base_scale, config.base_octaves, config.base_persistence
+	);
 }
 
 void TerrainGenerator::generate_map(TileMap &tilemap) {
@@ -122,13 +124,14 @@ std::pair<double, double> TerrainGenerator::get_climate(
 	// Generate temperature noise (0-1 range)
 	double temperature = temperature_noise_.octave_noise(
 		global_x * config_.temperature_scale,
-		global_y * config_.temperature_scale, 3, 0.5
+		global_y * config_.temperature_scale, config_.temperature_octaves,
+		config_.temperature_persistence
 	);
 
 	// Generate humidity noise (0-1 range)
 	double humidity = humidity_noise_.octave_noise(
-		global_x * config_.humidity_scale, global_y * config_.humidity_scale, 3,
-		0.5
+		global_x * config_.humidity_scale, global_y * config_.humidity_scale,
+		config_.humidity_octaves, config_.humidity_persistence
 	);
 
 	return {temperature, humidity};

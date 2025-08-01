@@ -16,8 +16,16 @@ struct GenerationConfig {
 
 	// Noise parameters
 	double temperature_scale = 0.005; // Scale for temperature noise
-	double humidity_scale = 0.007;    // Scale for humidity noise
-	double base_scale = 0.08;         // Scale for base terrain noise
+	int temperature_octaves = 3;      // Number of octaves for temperature noise
+	double temperature_persistence = 0.4; // Persistence for temperature noise
+
+	double humidity_scale = 0.005;        // Scale for humidity noise
+	int humidity_octaves = 3;          // Number of octaves for humidity noise
+	double humidity_persistence = 0.4; // Persistence for humidity noise
+
+	double base_scale = 0.08;          // Scale for base terrain noise
+	int base_octaves = 3;          // Number of octaves for base terrain noise
+	double base_persistence = 0.5; // Persistence for base terrain noise
 };
 
 // Terrain generator class that manages the generation process
