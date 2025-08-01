@@ -92,19 +92,22 @@ BiomeType determine_biome(double temperature, double humidity) {
 	temperature = std::clamp(temperature, 0.0, 1.0);
 	humidity = std::clamp(humidity, 0.0, 1.0);
 
+	const double threshold1 = 0.4;
+	const double threshold2 = 0.6;
+
 	BiomeTemperature temp_category;
-	if (temperature < 0.33) {
+	if (temperature < threshold1) {
 		temp_category = BiomeTemperature::Cold;
-	} else if (temperature < 0.66) {
+	} else if (temperature < threshold2) {
 		temp_category = BiomeTemperature::Temperate;
 	} else {
 		temp_category = BiomeTemperature::Hot;
 	}
 
 	BiomeHumidity humidity_category;
-	if (humidity < 0.33) {
+	if (humidity < threshold1) {
 		humidity_category = BiomeHumidity::Dry;
-	} else if (humidity < 0.66) {
+	} else if (humidity < threshold2) {
 		humidity_category = BiomeHumidity::Moderate;
 	} else {
 		humidity_category = BiomeHumidity::Wet;
