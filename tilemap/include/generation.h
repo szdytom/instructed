@@ -15,11 +15,11 @@ struct GenerationConfig {
 	Seed seed;
 
 	// Noise parameters
-	double temperature_scale = 0.005; // Scale for temperature noise
-	int temperature_octaves = 3;      // Number of octaves for temperature noise
+	double temperature_scale = 0.05; // Scale for temperature noise
+	int temperature_octaves = 3;     // Number of octaves for temperature noise
 	double temperature_persistence = 0.4; // Persistence for temperature noise
 
-	double humidity_scale = 0.005;        // Scale for humidity noise
+	double humidity_scale = 0.05;         // Scale for humidity noise
 	int humidity_octaves = 3;          // Number of octaves for humidity noise
 	double humidity_persistence = 0.4; // Persistence for humidity noise
 
@@ -35,8 +35,8 @@ private:
 
 	UniformPerlinNoise
 		base_noise_; // For base terrain generation (uniform distribution)
-	PerlinNoise temperature_noise_; // For temperature
-	PerlinNoise humidity_noise_;    // For humidity
+	UniformPerlinNoise temperature_noise_; // For temperature
+	UniformPerlinNoise humidity_noise_;    // For humidity
 
 public:
 	/**

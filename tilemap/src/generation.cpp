@@ -11,14 +11,22 @@ TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
 	Xoroshiro128PP rng{config.seed};
 	base_noise_ = UniformPerlinNoise(rng);
 	rng = rng.jump_96();
-	temperature_noise_ = PerlinNoise(rng);
+	temperature_noise_ = UniformPerlinNoise(rng);
 	rng = rng.jump_96();
-	humidity_noise_ = PerlinNoise(rng);
+	humidity_noise_ = UniformPerlinNoise(rng);
 
-	// Calibrate the uniform base noise with the same parameters that will be
-	// used for generation
 	base_noise_.calibrate(
 		config.base_scale, config.base_octaves, config.base_persistence
+	);
+
+	temperature_noise_.calibrate(
+		config.temperature_scale, config.temperature_octaves,
+		config.temperature_persistence
+	);
+
+	humidity_noise_.calibrate(
+		config.humidity_scale, config.humidity_octaves,
+		config.humidity_persistence
 	);
 }
 
@@ -126,16 +134,14 @@ std::pair<double, double> TerrainGenerator::get_climate(
 	double global_x, double global_y
 ) const {
 	// Generate temperature noise (0-1 range)
-	double temperature = temperature_noise_.octave_noise(
+	double temperature = temperature_noise_.uniform_noise(
 		global_x * config_.temperature_scale,
-		global_y * config_.temperature_scale, config_.temperature_octaves,
-		config_.temperature_persistence
+		global_y * config_.temperature_scale
 	);
 
 	// Generate humidity noise (0-1 range)
-	double humidity = humidity_noise_.octave_noise(
-		global_x * config_.humidity_scale, global_y * config_.humidity_scale,
-		config_.humidity_octaves, config_.humidity_persistence
+	double humidity = humidity_noise_.uniform_noise(
+		global_x * config_.humidity_scale, global_y * config_.humidity_scale
 	);
 
 	return {temperature, humidity};

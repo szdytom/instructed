@@ -11,11 +11,10 @@ constexpr BiomeProperties biome_properties[] = {
 	// Snowy Peeks (Cold & Dry)
 	{
      .name = "Snowy Peeks",
-
      .water_ratio = .05,
-     .ice_ratio = .15,
-     .sand_ratio = .1,
-     .land_ratio = .2,
+     .ice_ratio = .2,
+     .sand_ratio = .05,
+     .land_ratio = .3,
 	 },
 	// Snowy Plains (Cold & Moderate)
 	{
@@ -28,42 +27,42 @@ constexpr BiomeProperties biome_properties[] = {
 	// Frozen Ocean (Cold & Wet)
 	{
      .name = "Frozen Ocean",
-     .water_ratio = .3,
-     .ice_ratio = .4,
+     .water_ratio = .1,
+     .ice_ratio = .7,
      .sand_ratio = .25,
      .land_ratio = .05,
 	 },
 	// Plains (Temperate & Dry)
 	{
      .name = "Plains",
-     .water_ratio = .1,
+     .water_ratio = .05,
      .ice_ratio = .0,
      .sand_ratio = .05,
-     .land_ratio = .65,
+     .land_ratio = .7,
 	 },
 	// Forest (Temperate & Moderate)
 	{
      .name = "Forest",
-     .water_ratio = .2,
+     .water_ratio = .1,
      .ice_ratio = .0,
-     .sand_ratio = .1,
-     .land_ratio = .5,
+     .sand_ratio = .05,
+     .land_ratio = .75,
 	 },
 	// Ocean (Temperate & Wet)
 	{
      .name = "Ocean",
-     .water_ratio = .7,
+     .water_ratio = .8,
      .ice_ratio = .0,
-     .sand_ratio = .2,
-     .land_ratio = .1,
+     .sand_ratio = .15,
+     .land_ratio = .05,
 	 },
 	// Desert (Hot & Dry)
 	{
      .name = "Desert",
      .water_ratio = .0,
      .ice_ratio = .0,
-     .sand_ratio = .75,
-     .land_ratio = .05,
+     .sand_ratio = .8,
+     .land_ratio = .0,
 	 },
 	// Savanna (Hot & Moderate)
 	{
@@ -78,8 +77,8 @@ constexpr BiomeProperties biome_properties[] = {
      .name = "Luke Ocean",
      .water_ratio = .8,
      .ice_ratio = .0,
-     .sand_ratio = .2,
-     .land_ratio = .0,
+     .sand_ratio = .05,
+     .land_ratio = .15,
 	 },
 };
 
@@ -92,8 +91,8 @@ BiomeType determine_biome(double temperature, double humidity) {
 	temperature = std::clamp(temperature, 0.0, 1.0);
 	humidity = std::clamp(humidity, 0.0, 1.0);
 
-	const double threshold1 = 0.4;
-	const double threshold2 = 0.6;
+	const double threshold1 = 0.33;
+	const double threshold2 = 0.67;
 
 	BiomeTemperature temp_category;
 	if (temperature < threshold1) {
