@@ -103,12 +103,12 @@ void print_statistics(const istd::TileMap &tilemap) {
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
 
-	for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
-		for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
+	for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
+		for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
 			const auto &chunk = tilemap.get_chunk(chunk_x, chunk_y);
 
-			for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
-				for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
+			for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
+				for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
 					const auto &tile = chunk.tiles[tile_x][tile_y];
 					tile_counts[static_cast<int>(tile.base)]++;
 				}
