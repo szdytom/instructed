@@ -37,15 +37,18 @@ void TerrainGenerator::generate_biomes(TileMap &tilemap) {
 		for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
 			Chunk &chunk = tilemap.get_chunk(chunk_x, chunk_y);
 
-			for (std::uint8_t sub_y = 0; sub_y < 4; ++sub_y) {
-				for (std::uint8_t sub_x = 0; sub_x < 4; ++sub_x) {
+			for (std::uint8_t sub_y = 0; sub_y < Chunk::subchunk_count;
+			     ++sub_y) {
+				for (std::uint8_t sub_x = 0; sub_x < Chunk::subchunk_count;
+				     ++sub_x) {
 					// Calculate global position for this sub-chunk's center
-					double global_x = static_cast<double>(
-						chunk_x * Chunk::size + sub_x * 16 + 8
-					);
-					double global_y = static_cast<double>(
-						chunk_y * Chunk::size + sub_y * 16 + 8
-					);
+					auto [start_x, start_y]
+						= subchunk_to_tile_start(SubChunkPos(sub_x, sub_y));
+					double global_x = chunk_x * Chunk::size + start_x
+					                  + Chunk::subchunk_size / 2;
+
+					double global_y = chunk_y * Chunk::size + start_y
+					                  + Chunk::subchunk_size / 2;
 
 					// Get climate values
 					auto [temperature, humidity]
@@ -85,14 +88,13 @@ void TerrainGenerator::generate_subchunk(
 	auto [start_x, start_y] = subchunk_to_tile_start(sub_pos);
 
 	// Generate terrain for each tile in the 16x16 sub-chunk
-	for (std::uint8_t local_y = start_y; local_y < start_y + 16; ++local_y) {
-		for (std::uint8_t local_x = start_x; local_x < start_x + 16;
-		     ++local_x) {
+	for (std::uint8_t local_y = start_y;
+	     local_y < start_y + Chunk::subchunk_size; ++local_y) {
+		for (std::uint8_t local_x = start_x;
+		     local_x < start_x + Chunk::subchunk_size; ++local_x) {
 			// Calculate global coordinates
-			double global_x
-				= static_cast<double>(chunk_x * Chunk::size + local_x);
-			double global_y
-				= static_cast<double>(chunk_y * Chunk::size + local_y);
+			double global_x = chunk_x * Chunk::size + local_x;
+			double global_y = chunk_y * Chunk::size + local_y;
 
 			// Generate base terrain noise value using uniform distribution
 			double base_noise_value

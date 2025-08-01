@@ -62,11 +62,9 @@ struct SubChunkPos {
 };
 
 // Get the starting tile coordinates for a sub-chunk
-constexpr std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
+std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
 	const SubChunkPos &pos
-) {
-	return {pos.sub_x * 16, pos.sub_y * 16};
-}
+);
 
 } // namespace istd
 

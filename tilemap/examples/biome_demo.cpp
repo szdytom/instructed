@@ -38,11 +38,10 @@ void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 	// Generate tiles
 	for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
 		for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
-			const auto &chunk = tilemap.get_chunk(chunk_x, chunk_y);
-
 			for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
 				for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
-					const auto &tile = chunk.tiles[tile_x][tile_y];
+					istd::TilePos pos(chunk_x, chunk_y, tile_x, tile_y);
+					const auto &tile = tilemap.get_tile(pos);
 
 					int global_x = chunk_x * tiles_per_chunk + tile_x;
 					int global_y = chunk_y * tiles_per_chunk + tile_y;
@@ -134,7 +133,7 @@ void print_statistics(const istd::TileMap &tilemap) {
 
 int main(int argc, char *argv[]) {
 	// Parse command line arguments
-	if (argc < 3 || argc > 4) {
+	if (argc > 4) {
 		std::cerr << "Usage: " << argv[0]
 				  << " <seed> <output_file.bmp> [chunks_per_side]\n";
 		std::cerr << "  seed           - Random seed for generation\n";
@@ -145,8 +144,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	std::uint64_t seed = std::strtoull(argv[1], nullptr, 10);
-	std::string output_filename = argv[2];
+	std::uint64_t seed
+		= argc >= 2 ? std::strtoull(argv[1], nullptr, 10) : 541234;
+	std::string output_filename = argc >= 3 ? argv[2] : "output.bmp";
 	int chunks_per_side = 4; // Default value
 
 	// Parse optional chunks_per_side parameter
@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
 		}
 		if (chunks_per_side > 20) {
 			std::cerr << "Warning: Large chunk counts may produce very large "
-			             "images\n";
+						 "images\n";
 		}
 	}
 
@@ -178,9 +178,6 @@ int main(int argc, char *argv[]) {
 	// Configure generation parameters
 	istd::GenerationConfig config;
 	config.seed = seed;
-	config.temperature_scale = 0.005;
-	config.humidity_scale = 0.007;
-	config.base_scale = 0.08;
 
 	// Generate the map
 	std::cout << "Generating terrain..." << std::endl;

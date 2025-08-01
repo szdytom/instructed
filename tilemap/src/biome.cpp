@@ -1,4 +1,5 @@
 #include "biome.h"
+#include "chunk.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -113,6 +114,13 @@ BiomeType determine_biome(double temperature, double humidity) {
 	int mat_y = static_cast<int>(humidity_category);
 	int index = mat_x * 3 + mat_y; // 3 humidity categories
 	return static_cast<BiomeType>(index);
+}
+
+std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
+	const SubChunkPos &pos
+) {
+	// Convert sub-chunk position to tile start coordinates
+	return {pos.sub_x * Chunk::subchunk_size, pos.sub_y * Chunk::subchunk_size};
 }
 
 } // namespace istd
