@@ -5,7 +5,7 @@
 The tilemap library provides a flexible system for generating and managing tile-based terrain with biome support. The library consists of several main components:
 
 - **TileMap**: The main map container holding chunks of tiles
-- **Chunk**: 64x64 tile containers with biome information  
+- **Chunk**: 64x64 tile containers with biome information
 - **Tile**: Individual map tiles with base and surface types
 - **TerrainGenerator**: Procedural terrain generation system
 - **Biome System**: Climate-based terrain variation
@@ -20,11 +20,11 @@ The main container for the entire map, organized as an n×n grid of chunks.
 class TileMap {
 public:
     explicit TileMap(std::uint8_t size);
-    
+
     std::uint8_t get_size() const;
     Chunk& get_chunk(std::uint8_t chunk_x, std::uint8_t chunk_y);
     const Chunk& get_chunk(std::uint8_t chunk_x, std::uint8_t chunk_y) const;
-    
+
     Tile& get_tile(const TilePos& pos);
     const Tile& get_tile(const TilePos& pos) const;
     void set_tile(const TilePos& pos, const Tile& tile);
@@ -41,11 +41,15 @@ Each chunk contains 64×64 tiles and sub-chunk biome information.
 ```cpp
 struct Chunk {
     static constexpr uint8_t size = 64;           // Tiles per side
-    static constexpr uint8_t subchunk_size = /* certain value */;  // Tiles per sub-chunk side
+    static constexpr uint8_t subchunk_size = 4;   // Tiles per sub-chunk side
     static constexpr uint8_t subchunk_count = size / subchunk_size;  // Sub-chunks per side
-    
+
     Tile tiles[size][size];                       // 64x64 tile grid
-    BiomeType biome[subchunk_count][subchunk_count];
+    BiomeType biome[subchunk_count][subchunk_count]; // Sub-chunk biomes
+
+    // Get biome for a specific sub-chunk position
+    BiomeType& get_biome(const SubChunkPos& pos);
+    const BiomeType& get_biome(const SubChunkPos& pos) const;
 };
 ```
 
@@ -62,7 +66,7 @@ struct Tile {
 
 **Base Tile Types:**
 - `Land`: Standard ground terrain
-- `Mountain`: Rocky elevated terrain  
+- `Mountain`: Rocky elevated terrain
 - `Sand`: Desert/beach terrain
 - `Water`: Water bodies
 - `Ice`: Frozen terrain
@@ -79,10 +83,27 @@ Position structure for locating tiles within the map.
 ```cpp
 struct TilePos {
     uint8_t chunk_x;  // Chunk X coordinate
-    uint8_t chunk_y;  // Chunk Y coordinate  
+    uint8_t chunk_y;  // Chunk Y coordinate
     uint8_t local_x;  // Tile X within chunk (0-63)
     uint8_t local_y;  // Tile Y within chunk (0-63)
 };
+```
+
+### SubChunkPos
+
+Position within a chunk's sub-chunk grid.
+
+```cpp
+struct SubChunkPos {
+    std::uint8_t sub_x;
+    std::uint8_t sub_y;
+    
+    constexpr SubChunkPos(std::uint8_t x, std::uint8_t y);
+};
+
+std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
+    const SubChunkPos& pos
+);
 ```
 
 ## Terrain Generation
@@ -94,17 +115,17 @@ Configuration parameters for terrain generation.
 ```cpp
 struct GenerationConfig {
     std::uint64_t seed = 0;                       // Seed for random generation
-    
+
     // Temperature noise parameters
     double temperature_scale = 0.005;             // Scale for temperature noise
     int temperature_octaves = 3;                  // Number of octaves for temperature noise
     double temperature_persistence = 0.4;        // Persistence for temperature noise
-    
+
     // Humidity noise parameters
     double humidity_scale = 0.005;               // Scale for humidity noise
     int humidity_octaves = 3;                    // Number of octaves for humidity noise
     double humidity_persistence = 0.4;          // Persistence for humidity noise
-    
+
     // Base terrain noise parameters
     double base_scale = 0.08;                    // Scale for base terrain noise
     int base_octaves = 3;                        // Number of octaves for base terrain noise
@@ -118,7 +139,7 @@ struct GenerationConfig {
 - `temperature_scale`: Controls the scale/frequency of temperature variation across the map
 - `temperature_octaves`: Number of noise octaves for temperature (more octaves = more detail)
 - `temperature_persistence`: How much each octave contributes to temperature noise (0.0-1.0)
-- `humidity_scale`: Controls the scale/frequency of humidity variation across the map  
+- `humidity_scale`: Controls the scale/frequency of humidity variation across the map
 - `humidity_octaves`: Number of noise octaves for humidity
 - `humidity_persistence`: How much each octave contributes to humidity noise (0.0-1.0)
 - `base_scale`: Controls the scale/frequency of base terrain height variation
@@ -176,7 +197,7 @@ public:
 
 **Key Features:**
 - **Calibration**: Samples noise distribution to build CDF
-- **Uniform Mapping**: Maps raw Perlin values to uniform [0,1] distribution  
+- **Uniform Mapping**: Maps raw Perlin values to uniform [0,1] distribution
 - **Balanced Output**: Ensures even distribution across all value ranges
 - **Automatic Use**: TerrainGenerator uses this internally for balanced terrain
 
@@ -189,7 +210,7 @@ Available biome types based on temperature and humidity.
 ```cpp
 enum class BiomeType : std::uint8_t {
     SnowyPeeks,   // Cold & Dry
-    SnowyPlains,  // Cold & Moderate  
+    SnowyPlains,  // Cold & Moderate
     FrozenOcean,  // Cold & Wet
     Plains,       // Temperate & Dry
     Forest,       // Temperate & Moderate
@@ -208,7 +229,7 @@ Properties that control terrain generation for each biome.
 struct BiomeProperties {
     std::string_view name;      // Biome name
     double water_ratio;         // Water generation ratio
-    double ice_ratio;           // Ice generation ratio  
+    double ice_ratio;           // Ice generation ratio
     double sand_ratio;          // Sand generation ratio
     double land_ratio;          // Land generation ratio
     int base_octaves = 3;       // Noise octaves
@@ -221,21 +242,6 @@ struct BiomeProperties {
 ```cpp
 const BiomeProperties& get_biome_properties(BiomeType biome);
 BiomeType determine_biome(double temperature, double humidity);
-```
-
-### SubChunkPos
-
-Position within a chunk's sub-chunk grid.
-
-```cpp
-struct SubChunkPos {
-    std::uint8_t sub_x;
-    std::uint8_t sub_y;
-};
-
-constexpr std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
-    const SubChunkPos& pos
-);
 ```
 
 ## Usage Examples
@@ -258,7 +264,7 @@ config.temperature_scale = 0.005;
 config.temperature_octaves = 3;
 config.temperature_persistence = 0.4;
 
-// Humidity noise settings  
+// Humidity noise settings
 config.humidity_scale = 0.005;
 config.humidity_octaves = 3;
 config.humidity_persistence = 0.4;
@@ -295,9 +301,17 @@ const auto& tile2 = chunk.tiles[32][32];
 ### Working with Biomes
 
 ```cpp
-// Get biome for a sub-chunk
+// Method 1: Direct array access (traditional way)
 const auto& chunk = tilemap.get_chunk(0, 0);
 istd::BiomeType biome = chunk.biome[1][1]; // Sub-chunk (1,1)
+
+// Method 2: Using SubChunkPos and get_biome method (recommended)
+istd::SubChunkPos pos(1, 1); // Sub-chunk (1,1)
+istd::BiomeType biome2 = chunk.get_biome(pos);
+
+// Modify biome using the new method
+auto& mutable_chunk = tilemap.get_chunk(0, 0);
+mutable_chunk.get_biome(pos) = istd::BiomeType::Forest;
 
 // Get biome properties
 const auto& props = istd::get_biome_properties(biome);

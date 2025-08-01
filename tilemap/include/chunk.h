@@ -8,6 +8,14 @@ namespace istd {
 // Forward declaration
 enum class BiomeType : std::uint8_t;
 
+// Position within a chunk's sub-chunk grid
+struct SubChunkPos {
+	std::uint8_t sub_x;
+	std::uint8_t sub_y;
+
+	constexpr SubChunkPos(std::uint8_t x, std::uint8_t y): sub_x(x), sub_y(y) {}
+};
+
 // Represents the position of a tile in the map, using chunk and local
 // coordinates
 struct TilePos {
@@ -32,7 +40,22 @@ struct Chunk {
 
 	// array of biomes for sub-chunks
 	BiomeType biome[subchunk_count][subchunk_count];
+
+	// Get biome for a specific sub-chunk position
+	BiomeType &get_biome(const SubChunkPos &pos) {
+		return biome[pos.sub_x][pos.sub_y];
+	}
+
+	// Get biome for a specific sub-chunk position (const version)
+	const BiomeType &get_biome(const SubChunkPos &pos) const {
+		return biome[pos.sub_x][pos.sub_y];
+	}
 };
+
+// Get the starting tile coordinates for a sub-chunk
+std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
+	const SubChunkPos &pos
+);
 
 } // namespace istd
 

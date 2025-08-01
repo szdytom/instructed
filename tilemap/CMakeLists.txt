@@ -6,6 +6,7 @@ set(ISTD_TILEMAP_SRC
 	src/tilemap.cpp
 	src/noise.cpp
 	src/biome.cpp
+	src/chunk.cpp
 )
 
 # Create the tilemap library

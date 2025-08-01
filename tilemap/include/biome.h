@@ -41,10 +41,6 @@ struct BiomeProperties {
 	double ice_ratio;
 	double sand_ratio;
 	double land_ratio;
-
-	// Noise parameters for base terrain
-	int base_octaves = 3;
-	double base_persistence = 0.5;
 };
 
 // Get biome properties for terrain generation
@@ -52,18 +48,6 @@ const BiomeProperties &get_biome_properties(BiomeType biome);
 
 // Determine biome type based on temperature and humidity
 BiomeType determine_biome(double temperature, double humidity);
-
-struct SubChunkPos {
-	std::uint8_t sub_x;
-	std::uint8_t sub_y;
-
-	constexpr SubChunkPos(std::uint8_t x, std::uint8_t y): sub_x(x), sub_y(y) {}
-};
-
-// Get the starting tile coordinates for a sub-chunk
-std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
-	const SubChunkPos &pos
-);
 
 } // namespace istd
 
