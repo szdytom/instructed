@@ -32,7 +32,8 @@ private:
 	static constexpr std::uint64_t humidity_seed_mask
 		= 0x5e'10'be'e4'd2'6f'34'c2;
 
-	PerlinNoise base_noise_;        // For base terrain generation
+	UniformPerlinNoise
+		base_noise_; // For base terrain generation (uniform distribution)
 	PerlinNoise temperature_noise_; // For temperature
 	PerlinNoise humidity_noise_;    // For humidity
 

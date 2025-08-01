@@ -10,7 +10,11 @@ TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
 	: config_(config)
 	, base_noise_(config.seed ^ base_seed_mask)
 	, temperature_noise_(config.seed ^ temperature_seed_mask)
-	, humidity_noise_(config.seed ^ humidity_seed_mask) {}
+	, humidity_noise_(config.seed ^ humidity_seed_mask) {
+	// Calibrate the uniform base noise with the same parameters that will be
+	// used for generation
+	base_noise_.calibrate(config.base_scale, 3, 0.5);
+}
 
 void TerrainGenerator::generate_map(TileMap &tilemap) {
 	// First, generate biome data for all chunks
@@ -90,11 +94,9 @@ void TerrainGenerator::generate_subchunk(
 			double global_y
 				= static_cast<double>(chunk_y * Chunk::size + local_y);
 
-			// Generate base terrain noise value
-			double base_noise_value = base_noise_.octave_noise(
-				global_x * config_.base_scale, global_y * config_.base_scale,
-				properties.base_octaves, properties.base_persistence
-			);
+			// Generate base terrain noise value using uniform distribution
+			double base_noise_value
+				= base_noise_.uniform_noise(global_x, global_y);
 
 			// Determine base terrain type
 			BaseTileType base_type

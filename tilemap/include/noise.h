@@ -43,6 +43,68 @@ public:
 	) const;
 };
 
+/**
+ * @brief A wrapper that provides uniform distribution mapping for Perlin noise
+ *
+ * This class samples the noise distribution and builds a CDF (Cumulative
+ * Distribution Function) to map the non-uniform Perlin noise values to a
+ * uniform [0,1] distribution using quantiles.
+ */
+class UniformPerlinNoise {
+private:
+	PerlinNoise noise_;
+	std::vector<double> cdf_values_; // Sorted noise values for CDF
+	bool is_calibrated_;
+
+	// Parameters used for calibration
+	double scale_;
+	int octaves_;
+	double persistence_;
+
+public:
+	/**
+	 * @brief Construct a UniformPerlinNoise generator
+	 * @param seed Random seed for noise generation
+	 */
+	explicit UniformPerlinNoise(std::uint64_t seed = 0);
+
+	/**
+	 * @brief Calibrate the noise distribution by sampling
+	 * @param scale The scale parameter that will be used for generation
+	 * @param octaves Number of octaves for octave noise
+	 * @param persistence Persistence for octave noise
+	 * @param sample_size Number of samples to use for CDF (default: 10000)
+	 */
+	void calibrate(
+		double scale, int octaves = 1, double persistence = 0.5,
+		int sample_size = 10000
+	);
+
+	/**
+	 * @brief Generate uniform noise value at the given coordinates
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @return Uniformly distributed noise value between 0.0 and 1.0
+	 * @note Must call calibrate() first
+	 */
+	double uniform_noise(double x, double y) const;
+
+	/**
+	 * @brief Check if the noise generator has been calibrated
+	 */
+	bool is_calibrated() const {
+		return is_calibrated_;
+	}
+
+private:
+	/**
+	 * @brief Map a raw noise value to uniform distribution using the CDF
+	 * @param raw_value Raw noise value from Perlin noise
+	 * @return Uniformly distributed value between 0.0 and 1.0
+	 */
+	double map_to_uniform(double raw_value) const;
+};
+
 } // namespace istd
 
 #endif

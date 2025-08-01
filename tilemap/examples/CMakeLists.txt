@@ -12,3 +12,8 @@ target_include_directories(biome_demo PRIVATE ../include)
 add_executable(perlin_demo perlin_demo.cpp)
 target_link_libraries(perlin_demo PRIVATE istd_tilemap)
 target_include_directories(perlin_demo PRIVATE ../include)
+
+# Noise comparison (raw vs uniform)
+add_executable(noise_comparison noise_comparison.cpp)
+target_link_libraries(noise_comparison PRIVATE istd_tilemap)
+target_include_directories(noise_comparison PRIVATE ../include)

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 
 namespace istd {
 
@@ -89,6 +90,86 @@ double PerlinNoise::octave_noise(
 	}
 
 	return value / max_value;
+}
+
+UniformPerlinNoise::UniformPerlinNoise(std::uint64_t seed)
+	: noise_(seed)
+	, is_calibrated_(false)
+	, scale_(0.0)
+	, octaves_(1)
+	, persistence_(0.5) {}
+
+void UniformPerlinNoise::calibrate(
+	double scale, int octaves, double persistence, int sample_size
+) {
+	scale_ = scale;
+	octaves_ = octaves;
+	persistence_ = persistence;
+
+	// Clear previous calibration
+	cdf_values_.clear();
+	cdf_values_.reserve(sample_size);
+
+	// Sample noise values across a reasonable range
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<double> coord_dist(0.0, 1000.0);
+
+	// Collect samples
+	for (int i = 0; i < sample_size; ++i) {
+		double x = coord_dist(gen);
+		double y = coord_dist(gen);
+
+		double noise_value;
+		if (octaves_ == 1) {
+			noise_value = noise_.noise(x * scale_, y * scale_);
+		} else {
+			noise_value = noise_.octave_noise(
+				x * scale_, y * scale_, octaves_, persistence_
+			);
+		}
+
+		cdf_values_.push_back(noise_value);
+	}
+
+	// Sort values to create CDF
+	std::sort(cdf_values_.begin(), cdf_values_.end());
+
+	is_calibrated_ = true;
+}
+
+double UniformPerlinNoise::uniform_noise(double x, double y) const {
+	if (!is_calibrated_) {
+		throw std::runtime_error(
+			"UniformPerlinNoise must be calibrated before use"
+		);
+	}
+
+	// Generate raw noise value
+	double raw_value;
+	if (octaves_ == 1) {
+		raw_value = noise_.noise(x * scale_, y * scale_);
+	} else {
+		raw_value = noise_.octave_noise(
+			x * scale_, y * scale_, octaves_, persistence_
+		);
+	}
+
+	// Map to uniform distribution
+	return map_to_uniform(raw_value);
+}
+
+double UniformPerlinNoise::map_to_uniform(double raw_value) const {
+	// Find position in CDF using binary search
+	auto it
+		= std::lower_bound(cdf_values_.begin(), cdf_values_.end(), raw_value);
+
+	// Calculate quantile (position in CDF as fraction)
+	size_t position = std::distance(cdf_values_.begin(), it);
+	double quantile = static_cast<double>(position) / cdf_values_.size();
+
+	// Clamp to [0,1] range
+	return std::max(0.0, std::min(1.0, quantile));
 }
 
 } // namespace istd

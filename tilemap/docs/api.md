@@ -120,6 +120,41 @@ Convenience function for map generation.
 void map_generate(TileMap& tilemap, const GenerationConfig& config);
 ```
 
+## Noise System
+
+### PerlinNoise
+
+Standard Perlin noise implementation for procedural generation.
+
+```cpp
+class PerlinNoise {
+public:
+    explicit PerlinNoise(std::uint64_t seed = 0);
+    double noise(double x, double y) const;
+    double octave_noise(double x, double y, int octaves = 4, double persistence = 0.5) const;
+};
+```
+
+### UniformPerlinNoise
+
+Advanced noise generator that provides uniform distribution mapping.
+
+```cpp
+class UniformPerlinNoise {
+public:
+    explicit UniformPerlinNoise(std::uint64_t seed = 0);
+    void calibrate(double scale, int octaves = 1, double persistence = 0.5, int sample_size = 10000);
+    double uniform_noise(double x, double y) const;
+    bool is_calibrated() const;
+};
+```
+
+**Key Features:**
+- **Calibration**: Samples noise distribution to build CDF
+- **Uniform Mapping**: Maps raw Perlin values to uniform [0,1] distribution  
+- **Balanced Output**: Ensures even distribution across all value ranges
+- **Automatic Use**: TerrainGenerator uses this internally for balanced terrain
+
 ## Biome System
 
 ### BiomeType
@@ -147,10 +182,10 @@ Properties that control terrain generation for each biome.
 ```cpp
 struct BiomeProperties {
     std::string_view name;      // Biome name
-    double water_ratio;     // Water generation ratio
-    double ice_ratio;       // Ice generation ratio  
-    double sand_ratio;      // Sand generation ratio
-    double land_ratio;      // Land generation ratio
+    double water_ratio;         // Water generation ratio
+    double ice_ratio;           // Ice generation ratio  
+    double sand_ratio;          // Sand generation ratio
+    double land_ratio;          // Land generation ratio
     int base_octaves = 3;       // Noise octaves
     double base_persistence = 0.5; // Noise persistence
 };
@@ -238,7 +273,33 @@ std::cout << "Biome: " << props.name << std::endl;
 - A 4×4 chunk map contains 65,536 total tiles
 - Sub-chunks provide efficient biome management (16×16 tile regions)
 - Tiles are packed into 1 byte each for memory efficiency
-- Generation uses Perlin noise for natural-looking terrain
+- Generation uses Perlin noise with uniform distribution mapping for balanced terrain
+- Noise calibration is performed once during generator construction
+
+## Noise Distribution
+
+The library uses an advanced noise system that addresses the non-uniform distribution of Perlin noise:
+
+### Problem with Raw Perlin Noise
+
+Raw Perlin noise follows a bell-curve distribution, with most values concentrated around 0.5. This leads to unbalanced terrain generation where certain tile types (like Land) dominate the map.
+
+### Solution: Uniform Distribution Mapping
+
+The `UniformPerlinNoise` class:
+
+1. **Samples** the noise distribution during calibration
+2. **Builds a CDF** (Cumulative Distribution Function) from the samples
+3. **Maps raw noise values** to uniform [0,1] distribution using quantiles
+4. **Ensures balanced** terrain type distribution according to biome properties
+
+### Usage in Terrain Generation
+
+```cpp
+// The terrain generator automatically uses uniform noise
+TerrainGenerator generator(config);
+generator.generate_map(tilemap);  // Uses calibrated uniform noise internally
+```
 
 ## Thread Safety
 
