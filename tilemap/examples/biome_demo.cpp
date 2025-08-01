@@ -1,50 +1,39 @@
+#include "bmp.h"
 #include "generation.h"
 #include "tile.h"
 #include "tilemap.h"
 #include <cstdlib>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
 
-// Color mapping for different base tile types
-const char *get_tile_color(istd::BaseTileType type) {
+// Get BMP color for different base tile types
+BmpColors::Color get_tile_color(istd::BaseTileType type) {
 	switch (type) {
 	case istd::BaseTileType::Land:
-		return "#90EE90"; // Light green
+		return BmpColors::LAND;
 	case istd::BaseTileType::Mountain:
-		return "#8B4513"; // Saddle brown
+		return BmpColors::MOUNTAIN;
 	case istd::BaseTileType::Sand:
-		return "#F4A460"; // Sandy brown
+		return BmpColors::SAND;
 	case istd::BaseTileType::Water:
-		return "#1E90FF"; // Dodger blue
+		return BmpColors::WATER;
 	case istd::BaseTileType::Ice:
-		return "#B0E0E6"; // Powder blue
+		return BmpColors::ICE;
 	default:
-		return "#808080"; // Gray for unknown types
+		return BmpColors::Color(128, 128, 128); // Gray for unknown types
 	}
 }
 
-// Generate SVG file from tilemap
-void generate_svg(const istd::TileMap &tilemap, const std::string &filename) {
-	std::ofstream file(filename);
-	if (!file.is_open()) {
-		std::cerr << "Error: Could not open output file: " << filename
-				  << std::endl;
-		return;
-	}
-
+// Generate BMP file from tilemap
+void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
 	const int total_tiles = chunks_per_side * tiles_per_chunk;
-	const int tile_size = 2; // Size of each tile in SVG pixels
-	const int svg_size = total_tiles * tile_size;
+	const int tile_size = 2; // Size of each tile in pixels
+	const int image_size = total_tiles * tile_size;
 
-	// SVG header
-	file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-	file << "<svg width=\"" << svg_size << "\" height=\"" << svg_size
-		 << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
-	file << "<title>Tilemap Visualization</title>\n";
+	BmpWriter bmp(image_size, image_size);
 
 	// Generate tiles
 	for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
@@ -58,64 +47,51 @@ void generate_svg(const istd::TileMap &tilemap, const std::string &filename) {
 					int global_x = chunk_x * tiles_per_chunk + tile_x;
 					int global_y = chunk_y * tiles_per_chunk + tile_y;
 
-					int svg_x = global_x * tile_size;
-					int svg_y = global_y * tile_size;
+					auto color = get_tile_color(tile.base);
 
-					const char *color = get_tile_color(tile.base);
-
-					file << "<rect x=\"" << svg_x << "\" y=\"" << svg_y
-						 << "\" width=\"" << tile_size << "\" height=\""
-						 << tile_size << "\" fill=\"" << color << "\"/>\n";
+					// Draw a tile_size x tile_size block
+					for (int dy = 0; dy < tile_size; ++dy) {
+						for (int dx = 0; dx < tile_size; ++dx) {
+							int pixel_x = global_x * tile_size + dx;
+							int pixel_y = global_y * tile_size + dy;
+							bmp.set_pixel(
+								pixel_x, pixel_y, color.r, color.g, color.b
+							);
+						}
+					}
 				}
 			}
 		}
 	}
 
-	// Add grid lines for chunk boundaries
-	file << "<!-- Chunk boundaries -->\n";
+	// Add chunk boundary lines (optional - makes file larger)
+	/*
 	for (int i = 0; i <= chunks_per_side; ++i) {
-		int pos = i * tiles_per_chunk * tile_size;
-		// Vertical lines
-		file << "<line x1=\"" << pos << "\" y1=\"0\" x2=\"" << pos << "\" y2=\""
-			 << svg_size << "\" stroke=\"black\" stroke-width=\"2\"/>\n";
-		// Horizontal lines
-		file << "<line x1=\"0\" y1=\"" << pos << "\" x2=\"" << svg_size
-			 << "\" y2=\"" << pos
-			 << "\" stroke=\"black\" stroke-width=\"2\"/>\n";
+	    int pos = i * tiles_per_chunk * tile_size;
+	    // Vertical lines
+	    for (int y = 0; y < image_size; ++y) {
+	        if (pos < image_size) {
+	            bmp.set_pixel(pos, y, 0, 0, 0); // Black
+	        }
+	    }
+	    // Horizontal lines
+	    for (int x = 0; x < image_size; ++x) {
+	        if (pos < image_size) {
+	            bmp.set_pixel(x, pos, 0, 0, 0); // Black
+	        }
+	    }
+	}
+	*/
+
+	if (!bmp.save(filename)) {
+		std::cerr << "Error: Could not save BMP file: " << filename
+				  << std::endl;
+		return;
 	}
 
-	// Legend
-	file << "<!-- Legend -->\n";
-	file << "<g transform=\"translate(10, 10)\">\n";
-	file << "<rect x=\"0\" y=\"0\" width=\"200\" height=\"140\" fill=\"white\" "
-	        "stroke=\"black\" stroke-width=\"1\" opacity=\"0.9\"/>\n";
-	file << "<text x=\"10\" y=\"20\" font-family=\"Arial\" font-size=\"14\" "
-	        "font-weight=\"bold\">Legend</text>\n";
-
-	const std::pair<istd::BaseTileType, const char *> legend_items[] = {
-		{istd::BaseTileType::Land,     "Land"    },
-		{istd::BaseTileType::Mountain, "Mountain"},
-		{istd::BaseTileType::Sand,     "Sand"    },
-		{istd::BaseTileType::Water,    "Water"   },
-		{istd::BaseTileType::Ice,      "Ice"     }
-	};
-
-	for (int i = 0; i < 5; ++i) {
-		int y_pos = 40 + i * 20;
-		file << "<rect x=\"10\" y=\"" << (y_pos - 10)
-			 << "\" width=\"15\" height=\"15\" fill=\""
-			 << get_tile_color(legend_items[i].first)
-			 << "\" stroke=\"black\" stroke-width=\"1\"/>\n";
-		file << "<text x=\"30\" y=\"" << y_pos
-			 << "\" font-family=\"Arial\" font-size=\"12\">"
-			 << legend_items[i].second << "</text>\n";
-	}
-	file << "</g>\n";
-
-	file << "</svg>\n";
-	file.close();
-
-	std::cout << "SVG file generated: " << filename << std::endl;
+	std::cout << "BMP file generated: " << filename << std::endl;
+	std::cout << "Image size: " << image_size << "x" << image_size << " pixels"
+			  << std::endl;
 	std::cout << "Tilemap size: " << total_tiles << "x" << total_tiles
 			  << " tiles" << std::endl;
 	std::cout << "Chunks: " << chunks_per_side << "x" << chunks_per_side
@@ -159,8 +135,8 @@ void print_statistics(const istd::TileMap &tilemap) {
 int main(int argc, char *argv[]) {
 	// Parse command line arguments
 	if (argc != 3) {
-		std::cerr << "Usage: " << argv[0] << " <seed> <output_file.svg>\n";
-		std::cerr << "Example: " << argv[0] << " 12345 output.svg\n";
+		std::cerr << "Usage: " << argv[0] << " <seed> <output_file.bmp>\n";
+		std::cerr << "Example: " << argv[0] << " 12345 output.bmp\n";
 		return 1;
 	}
 
@@ -169,8 +145,8 @@ int main(int argc, char *argv[]) {
 
 	// Validate output filename
 	if (output_filename.length() < 4
-	    || output_filename.substr(output_filename.length() - 4) != ".svg") {
-		std::cerr << "Error: Output filename must end with .svg\n";
+	    || output_filename.substr(output_filename.length() - 4) != ".bmp") {
+		std::cerr << "Error: Output filename must end with .bmp\n";
 		return 1;
 	}
 
@@ -191,9 +167,9 @@ int main(int argc, char *argv[]) {
 	std::cout << "Generating terrain..." << std::endl;
 	istd::map_generate(tilemap, config);
 
-	// Generate SVG output
-	std::cout << "Creating SVG visualization..." << std::endl;
-	generate_svg(tilemap, output_filename);
+	// Generate BMP output
+	std::cout << "Creating BMP visualization..." << std::endl;
+	generate_bmp(tilemap, output_filename);
 
 	// Print statistics
 	print_statistics(tilemap);

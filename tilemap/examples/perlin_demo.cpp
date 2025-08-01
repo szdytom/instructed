@@ -1,51 +1,21 @@
+#include "bmp.h"
 #include "noise.h"
 #include <cstdlib>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
 
-// Convert a noise value [0,1] to a grayscale color
-std::string noise_to_grayscale(double noise_value) {
-	// Clamp to [0,1] range
-	noise_value = std::max(0.0, std::min(1.0, noise_value));
-
-	// Convert to 0-255 range
-	int gray = static_cast<int>(noise_value * 255);
-
-	// Convert to hex color
-	std::ostringstream oss;
-	oss << "#" << std::hex << std::setfill('0') << std::setw(2) << gray
-		<< std::setw(2) << gray << std::setw(2) << gray;
-	return oss.str();
-}
-
-// Generate SVG visualization of Perlin noise
-void generate_noise_svg(
+// Generate BMP file from Perlin noise
+void generate_noise_bmp(
 	const std::string &filename, int size, double scale, std::uint64_t seed,
 	int octaves = 1, double persistence = 0.5
 ) {
-	std::ofstream file(filename);
-	if (!file.is_open()) {
-		std::cerr << "Error: Could not open output file: " << filename
-				  << std::endl;
-		return;
-	}
-
 	// Create noise generator
 	istd::PerlinNoise noise(seed);
 
-	const int pixel_size = 2; // Size of each pixel in SVG units
-	const int svg_size = size * pixel_size;
+	BmpWriter bmp(size, size);
 
-	// SVG header
-	file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-	file << "<svg width=\"" << svg_size << "\" height=\"" << svg_size
-		 << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
-	file << "<title>Perlin Noise Visualization (Scale: " << scale
-		 << ", Octaves: " << octaves << ", Seed: " << seed << ")</title>\n";
-
-	// Generate noise values and create rectangles
+	// Generate noise values and statistics
 	double min_value = 1.0, max_value = 0.0;
 
 	for (int y = 0; y < size; ++y) {
@@ -63,66 +33,17 @@ void generate_noise_svg(
 			min_value = std::min(min_value, noise_value);
 			max_value = std::max(max_value, noise_value);
 
-			std::string color = noise_to_grayscale(noise_value);
-
-			int svg_x = x * pixel_size;
-			int svg_y = y * pixel_size;
-
-			file << "<rect x=\"" << svg_x << "\" y=\"" << svg_y << "\" width=\""
-				 << pixel_size << "\" height=\"" << pixel_size << "\" fill=\""
-				 << color << "\"/>\n";
+			bmp.set_pixel_normalized(x, y, noise_value);
 		}
 	}
 
-	// Add information text
-	file << "<!-- Statistics: Min=" << min_value << " Max=" << max_value
-		 << " -->\n";
-
-	// Add parameter info text overlay
-	file << "<g transform=\"translate(10, 10)\">\n";
-	file << "<rect x=\"0\" y=\"0\" width=\"300\" height=\"120\" fill=\"white\" "
-	        "stroke=\"black\" stroke-width=\"1\" opacity=\"0.9\"/>\n";
-	file << "<text x=\"10\" y=\"20\" font-family=\"Arial\" font-size=\"14\" "
-	        "font-weight=\"bold\">Perlin Noise Parameters</text>\n";
-	file << "<text x=\"10\" y=\"40\" font-family=\"Arial\" "
-	        "font-size=\"12\">Size: "
-		 << size << "x" << size << "</text>\n";
-	file << "<text x=\"10\" y=\"55\" font-family=\"Arial\" "
-	        "font-size=\"12\">Scale: "
-		 << scale << "</text>\n";
-	file << "<text x=\"10\" y=\"70\" font-family=\"Arial\" "
-	        "font-size=\"12\">Seed: "
-		 << seed << "</text>\n";
-	file << "<text x=\"10\" y=\"85\" font-family=\"Arial\" "
-	        "font-size=\"12\">Octaves: "
-		 << octaves << "</text>\n";
-	file << "<text x=\"10\" y=\"100\" font-family=\"Arial\" "
-	        "font-size=\"12\">Range: ["
-		 << std::fixed << std::setprecision(3) << min_value << ", " << max_value
-		 << "]</text>\n";
-	file << "</g>\n";
-
-	// Add grayscale legend
-	file << "<g transform=\"translate(" << (svg_size - 60) << ", 10)\">\n";
-	file << "<text x=\"0\" y=\"15\" font-family=\"Arial\" font-size=\"12\" "
-	        "font-weight=\"bold\">Value</text>\n";
-	for (int i = 0; i <= 10; ++i) {
-		double value = i / 10.0;
-		std::string color = noise_to_grayscale(value);
-		int y_pos = 20 + i * 15;
-		file << "<rect x=\"0\" y=\"" << y_pos
-			 << "\" width=\"20\" height=\"12\" fill=\"" << color
-			 << "\" stroke=\"black\" stroke-width=\"0.5\"/>\n";
-		file << "<text x=\"25\" y=\"" << (y_pos + 9)
-			 << "\" font-family=\"Arial\" font-size=\"10\">" << std::fixed
-			 << std::setprecision(1) << value << "</text>\n";
+	if (!bmp.save(filename)) {
+		std::cerr << "Error: Could not save BMP file: " << filename
+				  << std::endl;
+		return;
 	}
-	file << "</g>\n";
 
-	file << "</svg>\n";
-	file.close();
-
-	std::cout << "Perlin noise SVG generated: " << filename << std::endl;
+	std::cout << "Perlin noise BMP generated: " << filename << std::endl;
 	std::cout << "Size: " << size << "x" << size << " pixels" << std::endl;
 	std::cout << "Scale: " << scale << ", Octaves: " << octaves << std::endl;
 	std::cout << "Value range: [" << std::fixed << std::setprecision(3)
@@ -132,7 +53,7 @@ void generate_noise_svg(
 int main(int argc, char *argv[]) {
 	// Default parameters
 	std::uint64_t seed = 12345;
-	std::string output_filename = "perlin_noise.svg";
+	std::string output_filename = "perlin_noise.bmp";
 	double scale = 0.02;
 	int octaves = 1;
 	double persistence = 0.5;
@@ -156,12 +77,12 @@ int main(int argc, char *argv[]) {
 
 	if (argc == 1 || argc > 6) {
 		std::cout << "Usage: " << argv[0]
-				  << " [seed] [output.svg] [scale] [octaves] [persistence]\n";
-		std::cout << "Defaults: seed=12345, output=perlin_noise.svg, "
+				  << " [seed] [output.bmp] [scale] [octaves] [persistence]\n";
+		std::cout << "Defaults: seed=12345, output=perlin_noise.bmp, "
 		             "scale=0.02, octaves=1, persistence=0.5\n";
 		std::cout << "Examples:\n";
-		std::cout << "  " << argv[0] << " 54321 noise1.svg 0.01\n";
-		std::cout << "  " << argv[0] << " 12345 octave_noise.svg 0.02 4 0.5\n";
+		std::cout << "  " << argv[0] << " 54321 noise1.bmp 0.01\n";
+		std::cout << "  " << argv[0] << " 12345 octave_noise.bmp 0.02 4 0.5\n";
 		if (argc > 6) {
 			return 1;
 		}
@@ -188,7 +109,7 @@ int main(int argc, char *argv[]) {
 			  << std::endl;
 
 	// Generate the noise visualization
-	generate_noise_svg(output_filename, 256, scale, seed, octaves, persistence);
+	generate_noise_bmp(output_filename, 256, scale, seed, octaves, persistence);
 
 	return 0;
 }
