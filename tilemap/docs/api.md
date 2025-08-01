@@ -93,12 +93,37 @@ Configuration parameters for terrain generation.
 
 ```cpp
 struct GenerationConfig {
-    std::uint64_t seed = 0;                    // Random seed
-    double temperature_scale = 0.005;          // Temperature noise scale
-    double humidity_scale = 0.007;             // Humidity noise scale  
-    double base_scale = 0.08;                  // Base terrain noise scale
+    std::uint64_t seed = 0;                       // Seed for random generation
+    
+    // Temperature noise parameters
+    double temperature_scale = 0.005;             // Scale for temperature noise
+    int temperature_octaves = 3;                  // Number of octaves for temperature noise
+    double temperature_persistence = 0.4;        // Persistence for temperature noise
+    
+    // Humidity noise parameters
+    double humidity_scale = 0.005;               // Scale for humidity noise
+    int humidity_octaves = 3;                    // Number of octaves for humidity noise
+    double humidity_persistence = 0.4;          // Persistence for humidity noise
+    
+    // Base terrain noise parameters
+    double base_scale = 0.08;                    // Scale for base terrain noise
+    int base_octaves = 3;                        // Number of octaves for base terrain noise
+    double base_persistence = 0.5;              // Persistence for base terrain noise
 };
 ```
+
+**Parameters:**
+
+- `seed`: Random seed for all noise generators
+- `temperature_scale`: Controls the scale/frequency of temperature variation across the map
+- `temperature_octaves`: Number of noise octaves for temperature (more octaves = more detail)
+- `temperature_persistence`: How much each octave contributes to temperature noise (0.0-1.0)
+- `humidity_scale`: Controls the scale/frequency of humidity variation across the map  
+- `humidity_octaves`: Number of noise octaves for humidity
+- `humidity_persistence`: How much each octave contributes to humidity noise (0.0-1.0)
+- `base_scale`: Controls the scale/frequency of base terrain height variation
+- `base_octaves`: Number of noise octaves for base terrain
+- `base_persistence`: How much each octave contributes to base terrain noise (0.0-1.0)
 
 ### TerrainGenerator
 
@@ -227,9 +252,21 @@ istd::TileMap tilemap(4);
 // Configure generation
 istd::GenerationConfig config;
 config.seed = 12345;
+
+// Temperature noise settings
 config.temperature_scale = 0.005;
-config.humidity_scale = 0.007;
+config.temperature_octaves = 3;
+config.temperature_persistence = 0.4;
+
+// Humidity noise settings  
+config.humidity_scale = 0.005;
+config.humidity_octaves = 3;
+config.humidity_persistence = 0.4;
+
+// Base terrain noise settings
 config.base_scale = 0.08;
+config.base_octaves = 3;
+config.base_persistence = 0.5;
 
 // Generate terrain
 istd::map_generate(tilemap, config);
