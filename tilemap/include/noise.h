@@ -1,6 +1,7 @@
 #ifndef ISTD_TILEMAP_NOISE_H
 #define ISTD_TILEMAP_NOISE_H
 
+#include "xoroshiro.h"
 #include <cstdint>
 #include <vector>
 
@@ -18,9 +19,11 @@ private:
 public:
 	/**
 	 * @brief Construct a PerlinNoise generator with the given seed
-	 * @param seed Random seed for noise generation
+	 * @param rng Random number generator for noise
 	 */
-	explicit PerlinNoise(std::uint64_t seed = 0);
+	explicit PerlinNoise(Xoroshiro128PP rng);
+
+	PerlinNoise() = default;
 
 	/**
 	 * @brief Generate 2D Perlin noise value at the given coordinates
@@ -39,7 +42,7 @@ public:
 	 * @return Noise value between 0.0 and 1.0
 	 */
 	double octave_noise(
-		double x, double y, int octaves = 4, double persistence = 0.5
+		double x, double y, int octaves, double persistence
 	) const;
 };
 
@@ -53,6 +56,7 @@ public:
 class UniformPerlinNoise {
 private:
 	PerlinNoise noise_;
+	Xoroshiro128PP calibrate_rng_;
 	std::vector<double> cdf_values_; // Sorted noise values for CDF
 	bool is_calibrated_;
 
@@ -66,7 +70,9 @@ public:
 	 * @brief Construct a UniformPerlinNoise generator
 	 * @param seed Random seed for noise generation
 	 */
-	explicit UniformPerlinNoise(std::uint64_t seed = 0);
+	explicit UniformPerlinNoise(Xoroshiro128PP rng);
+
+	UniformPerlinNoise() = default;
 
 	/**
 	 * @brief Calibrate the noise distribution by sampling
@@ -76,8 +82,7 @@ public:
 	 * @param sample_size Number of samples to use for CDF (default: 10000)
 	 */
 	void calibrate(
-		double scale, int octaves = 1, double persistence = 0.5,
-		int sample_size = 10000
+		double scale, int octaves, double persistence, int sample_size = 10000
 	);
 
 	/**

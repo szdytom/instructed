@@ -7,10 +7,14 @@
 namespace istd {
 
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
-	: config_(config)
-	, base_noise_(config.seed ^ base_seed_mask)
-	, temperature_noise_(config.seed ^ temperature_seed_mask)
-	, humidity_noise_(config.seed ^ humidity_seed_mask) {
+	: config_(config) {
+	Xoroshiro128PP rng{config.seed};
+	base_noise_ = UniformPerlinNoise(rng);
+	rng = rng.jump_96();
+	temperature_noise_ = PerlinNoise(rng);
+	rng = rng.jump_96();
+	humidity_noise_ = PerlinNoise(rng);
+
 	// Calibrate the uniform base noise with the same parameters that will be
 	// used for generation
 	base_noise_.calibrate(

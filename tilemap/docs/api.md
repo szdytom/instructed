@@ -114,7 +114,7 @@ Configuration parameters for terrain generation.
 
 ```cpp
 struct GenerationConfig {
-    std::uint64_t seed = 0;                       // Seed for random generation
+    Seed seed;                                    // 128-bit seed for random generation
 
     // Temperature noise parameters
     double temperature_scale = 0.005;             // Scale for temperature noise
@@ -135,7 +135,7 @@ struct GenerationConfig {
 
 **Parameters:**
 
-- `seed`: Random seed for all noise generators
+- `seed`: 128-bit seed for all noise generators (see Seed structure)
 - `temperature_scale`: Controls the scale/frequency of temperature variation across the map
 - `temperature_octaves`: Number of noise octaves for temperature (more octaves = more detail)
 - `temperature_persistence`: How much each octave contributes to temperature noise (0.0-1.0)
@@ -166,16 +166,64 @@ Convenience function for map generation.
 void map_generate(TileMap& tilemap, const GenerationConfig& config);
 ```
 
+## Random Number Generation
+
+### Seed
+
+128-bit seed structure for random number generation.
+
+```cpp
+struct Seed {
+    std::uint64_t s[2];                           // 128-bit seed value (two 64-bit components)
+
+    static Seed from_string(const char* str);     // Create seed from string
+    static Seed device_random();                  // Create seed from hardware random device
+};
+```
+
+**Key Features:**
+- **128-bit precision**: Uses two 64-bit integers for extended seed space
+- **String generation**: Deterministic seed creation from text strings
+- **Hardware random**: True random seed generation using system entropy
+
+### Xoroshiro128++
+
+High-performance random number generator using the Xoroshiro128++ algorithm.
+
+```cpp
+class Xoroshiro128PP {
+public:
+    Xoroshiro128PP() = default;
+    Xoroshiro128PP(Seed seed);
+
+    // STL RandomEngine interface
+    using result_type = std::uint64_t;
+    static constexpr result_type min();
+    static constexpr result_type max();
+    result_type operator()();
+
+    std::uint64_t next();                         // Generate next random number
+    Xoroshiro128PP jump_64() const;               // Jump equivalent to 2^64 calls
+    Xoroshiro128PP jump_96() const;               // Jump equivalent to 2^96 calls
+};
+```
+
+**Key Features:**
+- **High Performance**: Optimized for speed with excellent statistical properties
+- **128-bit State**: Internal state provides long period (2^128 - 1)
+- **Jump Functions**: Enable parallel random number generation
+- **STL Compatible**: Implements standard random engine interface
+
 ## Noise System
 
 ### PerlinNoise
 
-Standard Perlin noise implementation for procedural generation.
+Standard Perlin noise implementation using Xoroshiro128++ for procedural generation.
 
 ```cpp
 class PerlinNoise {
 public:
-    explicit PerlinNoise(std::uint64_t seed = 0);
+    explicit PerlinNoise(Xoroshiro128PP rng);
     double noise(double x, double y) const;
     double octave_noise(double x, double y, int octaves = 4, double persistence = 0.5) const;
 };
@@ -183,12 +231,12 @@ public:
 
 ### UniformPerlinNoise
 
-Advanced noise generator that provides uniform distribution mapping.
+Advanced noise generator using Xoroshiro128++ that provides uniform distribution mapping.
 
 ```cpp
 class UniformPerlinNoise {
 public:
-    explicit UniformPerlinNoise(std::uint64_t seed = 0);
+    explicit UniformPerlinNoise(Xoroshiro128PP rng);
     void calibrate(double scale, int octaves = 1, double persistence = 0.5, int sample_size = 10000);
     double uniform_noise(double x, double y) const;
     bool is_calibrated() const;
@@ -200,6 +248,7 @@ public:
 - **Uniform Mapping**: Maps raw Perlin values to uniform [0,1] distribution
 - **Balanced Output**: Ensures even distribution across all value ranges
 - **Automatic Use**: TerrainGenerator uses this internally for balanced terrain
+- **Xoroshiro128++ Backend**: Uses high-quality random number generation
 
 ## Biome System
 
@@ -257,7 +306,7 @@ istd::TileMap tilemap(4);
 
 // Configure generation
 istd::GenerationConfig config;
-config.seed = 12345;
+config.seed = istd::Seed::from_string("hello_world");  // 128-bit seed from string
 
 // Temperature noise settings
 config.temperature_scale = 0.005;
@@ -284,6 +333,25 @@ for (int chunk_y = 0; chunk_y < Chunk::subchunk_count; ++chunk_y) {
         // Process chunk tiles...
     }
 }
+```
+
+### Seed Usage Examples
+
+```cpp
+// Create seed from string (deterministic)
+istd::Seed seed1 = istd::Seed::from_string("my_world");
+
+// Create random seed from hardware
+istd::Seed seed2 = istd::Seed::device_random();
+
+// Manual seed creation
+istd::Seed seed3;
+seed3.s[0] = 0x123456789abcdef0;
+seed3.s[1] = 0xfedcba9876543210;
+
+// Use seed in generation
+istd::GenerationConfig config;
+config.seed = seed1;
 ```
 
 ### Accessing Individual Tiles
@@ -323,32 +391,44 @@ std::cout << "Biome: " << props.name << std::endl;
 - Each chunk contains 4,096 tiles (64×64)
 - Sub-chunks provide efficient biome management
 - Tiles are packed into 1 byte each for memory efficiency
-- Generation uses Perlin noise with uniform distribution mapping for balanced terrain
+- Generation uses Xoroshiro128++ random number generator with uniform distribution mapping for balanced terrain
 - Noise calibration is performed once during generator construction
+- 128-bit seeds provide excellent randomness and reproducibility
 
 ## Noise Distribution
 
-The library uses an advanced noise system that addresses the non-uniform distribution of Perlin noise:
+The library uses an advanced noise system based on Xoroshiro128++ random number generation that addresses the non-uniform distribution of Perlin noise:
 
 ### Problem with Raw Perlin Noise
 
 Raw Perlin noise follows a bell-curve distribution, with most values concentrated around 0.5. This leads to unbalanced terrain generation where certain tile types (like Land) dominate the map.
 
-### Solution: Uniform Distribution Mapping
+### Solution: Xoroshiro128++ + Uniform Distribution Mapping
 
-The `UniformPerlinNoise` class:
+The library combines two key improvements:
 
-1. **Samples** the noise distribution during calibration
-2. **Builds a CDF** (Cumulative Distribution Function) from the samples
-3. **Maps raw noise values** to uniform [0,1] distribution using quantiles
-4. **Ensures balanced** terrain type distribution according to biome properties
+1. **Xoroshiro128++ RNG**: High-quality pseudo-random number generator with:
+   - **Long Period**: 2^128 - 1 sequence length before repetition
+   - **High Performance**: Optimized for speed and memory efficiency
+   - **Excellent Statistics**: Passes rigorous randomness tests
+   - **128-bit State**: Two 64-bit values providing extensive seed space
+
+2. **Uniform Distribution Mapping**: The `UniformPerlinNoise` class:
+   - **Samples** the noise distribution during calibration
+   - **Builds a CDF** (Cumulative Distribution Function) from the samples
+   - **Maps raw noise values** to uniform [0,1] distribution using quantiles
+   - **Ensures balanced** terrain type distribution according to biome properties
 
 ### Usage in Terrain Generation
 
 ```cpp
-// The terrain generator automatically uses uniform noise
+// The terrain generator automatically uses Xoroshiro128++ and uniform noise
+istd::Seed seed = istd::Seed::from_string("consistent_world");
+istd::GenerationConfig config;
+config.seed = seed;
+
 TerrainGenerator generator(config);
-generator.generate_map(tilemap);  // Uses calibrated uniform noise internally
+generator.generate_map(tilemap);  // Uses calibrated uniform noise with Xoroshiro128++
 ```
 
 ## Thread Safety

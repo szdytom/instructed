@@ -3,6 +3,7 @@
 #include "tile.h"
 #include "tilemap.h"
 #include <cstdlib>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -62,25 +63,6 @@ void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 			}
 		}
 	}
-
-	// Add chunk boundary lines (optional - makes file larger)
-	/*
-	for (int i = 0; i <= chunks_per_side; ++i) {
-	    int pos = i * tiles_per_chunk * tile_size;
-	    // Vertical lines
-	    for (int y = 0; y < image_size; ++y) {
-	        if (pos < image_size) {
-	            bmp.set_pixel(pos, y, 0, 0, 0); // Black
-	        }
-	    }
-	    // Horizontal lines
-	    for (int x = 0; x < image_size; ++x) {
-	        if (pos < image_size) {
-	            bmp.set_pixel(x, pos, 0, 0, 0); // Black
-	        }
-	    }
-	}
-	*/
 
 	if (!bmp.save(filename)) {
 		std::cerr << "Error: Could not save BMP file: " << filename
@@ -144,8 +126,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	std::uint64_t seed
-		= argc >= 2 ? std::strtoull(argv[1], nullptr, 10) : 541234;
+	istd::Seed seed
+		= istd::Seed::from_string(argc >= 2 ? argv[1] : "hello_world");
 	std::string output_filename = argc >= 3 ? argv[2] : "output.bmp";
 	int chunks_per_side = 4; // Default value
 
@@ -170,7 +152,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	std::cout << "Generating " << chunks_per_side << "x" << chunks_per_side
-			  << " chunk tilemap with seed: " << seed << std::endl;
+			  << " chunk tilemap with seed: " << seed.s[0] << ", " << seed.s[1]
+			  << std::endl;
 
 	// Create tilemap with specified size
 	istd::TileMap tilemap(chunks_per_side);

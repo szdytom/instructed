@@ -12,7 +12,7 @@
 namespace istd {
 
 struct GenerationConfig {
-	std::uint64_t seed = 0; // Seed for random generation
+	Seed seed;
 
 	// Noise parameters
 	double temperature_scale = 0.005; // Scale for temperature noise
@@ -32,13 +32,6 @@ struct GenerationConfig {
 class TerrainGenerator {
 private:
 	GenerationConfig config_;
-
-	// Just some random numbers to mask the seeds
-	static constexpr std::uint64_t base_seed_mask = 0x06'a9'cb'b1'b3'96'f3'50;
-	static constexpr std::uint64_t temperature_seed_mask
-		= 0x79'c8'a7'a1'09'99'd0'e3;
-	static constexpr std::uint64_t humidity_seed_mask
-		= 0x5e'10'be'e4'd2'6f'34'c2;
 
 	UniformPerlinNoise
 		base_noise_; // For base terrain generation (uniform distribution)

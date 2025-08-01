@@ -7,14 +7,13 @@
 
 namespace istd {
 
-PerlinNoise::PerlinNoise(std::uint64_t seed) {
+PerlinNoise::PerlinNoise(Xoroshiro128PP rng) {
 	// Initialize permutation array with values 0-255
 	permutation_.resize(256);
 	std::iota(permutation_.begin(), permutation_.end(), 0);
 
 	// Shuffle using the provided seed
-	std::default_random_engine generator(seed);
-	std::shuffle(permutation_.begin(), permutation_.end(), generator);
+	std::shuffle(permutation_.begin(), permutation_.end(), rng);
 
 	// Duplicate the permutation to avoid overflow
 	permutation_.insert(
@@ -92,12 +91,8 @@ double PerlinNoise::octave_noise(
 	return value / max_value;
 }
 
-UniformPerlinNoise::UniformPerlinNoise(std::uint64_t seed)
-	: noise_(seed)
-	, is_calibrated_(false)
-	, scale_(0.0)
-	, octaves_(1)
-	, persistence_(0.5) {}
+UniformPerlinNoise::UniformPerlinNoise(Xoroshiro128PP rng)
+	: noise_(rng), calibrate_rng_(rng), is_calibrated_(false) {}
 
 void UniformPerlinNoise::calibrate(
 	double scale, int octaves, double persistence, int sample_size
@@ -111,14 +106,13 @@ void UniformPerlinNoise::calibrate(
 	cdf_values_.reserve(sample_size);
 
 	// Sample noise values across a reasonable range
-	std::random_device rd;
-	std::mt19937 gen(rd());
+	Xoroshiro128PP rng = calibrate_rng_;
 	std::uniform_real_distribution<double> coord_dist(0.0, 1000.0);
 
 	// Collect samples
 	for (int i = 0; i < sample_size; ++i) {
-		double x = coord_dist(gen);
-		double y = coord_dist(gen);
+		double x = coord_dist(rng);
+		double y = coord_dist(rng);
 
 		double noise_value;
 		if (octaves_ == 1) {
