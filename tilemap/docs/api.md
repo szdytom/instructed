@@ -36,16 +36,16 @@ public:
 
 ### Chunk
 
-Each chunk contains 64×64 tiles and 4×4 sub-chunk biome information.
+Each chunk contains 64×64 tiles and sub-chunk biome information.
 
 ```cpp
 struct Chunk {
     static constexpr uint8_t size = 64;           // Tiles per side
-    static constexpr uint8_t subchunk_size = 16;  // Tiles per sub-chunk side
-    static constexpr uint8_t subchunk_count = 4;  // Sub-chunks per side
+    static constexpr uint8_t subchunk_size = /* certain value */;  // Tiles per sub-chunk side
+    static constexpr uint8_t subchunk_count = size / subchunk_size;  // Sub-chunks per side
     
     Tile tiles[size][size];                       // 64x64 tile grid
-    BiomeType biome[subchunk_count][subchunk_count]; // 4x4 biome grid
+    BiomeType biome[subchunk_count][subchunk_count];
 };
 ```
 
@@ -200,12 +200,12 @@ BiomeType determine_biome(double temperature, double humidity);
 
 ### SubChunkPos
 
-Position within a chunk's 4×4 sub-chunk grid.
+Position within a chunk's sub-chunk grid.
 
 ```cpp
 struct SubChunkPos {
-    std::uint8_t sub_x; // 0-3
-    std::uint8_t sub_y; // 0-3
+    std::uint8_t sub_x;
+    std::uint8_t sub_y;
 };
 
 constexpr std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
@@ -235,8 +235,8 @@ config.base_scale = 0.08;
 istd::map_generate(tilemap, config);
 
 // Access tiles
-for (int chunk_y = 0; chunk_y < 4; ++chunk_y) {
-    for (int chunk_x = 0; chunk_x < 4; ++chunk_x) {
+for (int chunk_y = 0; chunk_y < Chunk::subchunk_count; ++chunk_y) {
+    for (int chunk_x = 0; chunk_x < Chunk::subchunk_count; ++chunk_x) {
         const auto& chunk = tilemap.get_chunk(chunk_x, chunk_y);
         // Process chunk tiles...
     }
@@ -270,8 +270,7 @@ std::cout << "Biome: " << props.name << std::endl;
 ## Performance Notes
 
 - Each chunk contains 4,096 tiles (64×64)
-- A 4×4 chunk map contains 65,536 total tiles
-- Sub-chunks provide efficient biome management (16×16 tile regions)
+- Sub-chunks provide efficient biome management
 - Tiles are packed into 1 byte each for memory efficiency
 - Generation uses Perlin noise with uniform distribution mapping for balanced terrain
 - Noise calibration is performed once during generator construction

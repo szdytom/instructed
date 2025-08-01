@@ -53,10 +53,9 @@ const BiomeProperties &get_biome_properties(BiomeType biome);
 // Determine biome type based on temperature and humidity
 BiomeType determine_biome(double temperature, double humidity);
 
-// Sub-chunk position within a chunk (4x4 grid of 16x16 sub-chunks)
 struct SubChunkPos {
-	std::uint8_t sub_x; // 0-3
-	std::uint8_t sub_y; // 0-3
+	std::uint8_t sub_x;
+	std::uint8_t sub_y;
 
 	constexpr SubChunkPos(std::uint8_t x, std::uint8_t y): sub_x(x), sub_y(y) {}
 };

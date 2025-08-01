@@ -71,8 +71,8 @@ void TerrainGenerator::generate_chunk(
 	const Chunk &chunk = tilemap.get_chunk(chunk_x, chunk_y);
 
 	// Generate each sub-chunk with its corresponding biome
-	for (std::uint8_t sub_x = 0; sub_x < 4; ++sub_x) {
-		for (std::uint8_t sub_y = 0; sub_y < 4; ++sub_y) {
+	for (std::uint8_t sub_x = 0; sub_x < Chunk::subchunk_count; ++sub_x) {
+		for (std::uint8_t sub_y = 0; sub_y < Chunk::subchunk_count; ++sub_y) {
 			SubChunkPos sub_pos(sub_x, sub_y);
 			BiomeType biome = chunk.biome[sub_x][sub_y];
 			generate_subchunk(tilemap, chunk_x, chunk_y, sub_pos, biome);
@@ -89,7 +89,7 @@ void TerrainGenerator::generate_subchunk(
 	// Get starting tile coordinates for this sub-chunk
 	auto [start_x, start_y] = subchunk_to_tile_start(sub_pos);
 
-	// Generate terrain for each tile in the 16x16 sub-chunk
+	// Generate terrain for each tile in the sub-chunk
 	for (std::uint8_t local_x = start_x;
 	     local_x < start_x + Chunk::subchunk_size; ++local_x) {
 		for (std::uint8_t local_y = start_y;
