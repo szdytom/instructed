@@ -1,0 +1,10 @@
+.vscode/
+build/
+*.out
+*.swp
+*.o
+tilemap_demo
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
