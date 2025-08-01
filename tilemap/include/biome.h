@@ -36,11 +36,11 @@ struct BiomeProperties {
 	// Biome name for debugging
 	std::string_view name;
 
-	// Base terrain thresholds (0.0 - 1.0)
-	double water_threshold;
-	double ice_threshold;
-	double sand_threshold;
-	double land_threshold;
+	// Base terrain ratios (0.0 - 1.0)
+	double water_ratio;
+	double ice_ratio;
+	double sand_ratio;
+	double land_ratio;
 
 	// Noise parameters for base terrain
 	int base_octaves = 3;

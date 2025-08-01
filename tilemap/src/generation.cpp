@@ -133,19 +133,19 @@ std::pair<double, double> TerrainGenerator::get_climate(
 BaseTileType TerrainGenerator::determine_base_type(
 	double noise_value, const BiomeProperties &properties
 ) const {
-	const std::pair<BaseTileType, double> thresholds[] = {
-		{BaseTileType::Water,    properties.water_threshold},
-		{BaseTileType::Ice,      properties.ice_threshold  },
-		{BaseTileType::Sand,     properties.sand_threshold },
-		{BaseTileType::Land,     properties.land_threshold },
-		{BaseTileType::Mountain, 1.0                       },
+	const std::pair<BaseTileType, double> ratios[] = {
+		{BaseTileType::Water,    properties.water_ratio},
+		{BaseTileType::Ice,      properties.ice_ratio  },
+		{BaseTileType::Sand,     properties.sand_ratio },
+		{BaseTileType::Land,     properties.land_ratio },
+		{BaseTileType::Mountain, 1.0                   },
 	};
 
-	for (const auto &[type, threshold] : thresholds) {
-		if (noise_value < threshold) {
+	for (const auto &[type, ratio] : ratios) {
+		if (noise_value < ratio) {
 			return type;
 		}
-		noise_value -= threshold; // Adjust noise value for next type
+		noise_value -= ratio; // Adjust noise value for next type
 	}
 
 	std::unreachable();

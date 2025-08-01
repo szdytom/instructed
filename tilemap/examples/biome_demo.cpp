@@ -1,187 +1,202 @@
-#include "biome.h"
 #include "generation.h"
+#include "tile.h"
 #include "tilemap.h"
+#include <cstdlib>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
-using namespace istd;
-
-// Function to get character representation for biome visualization
-char get_biome_char(BiomeType biome) {
-	switch (biome) {
-	case BiomeType::Desert:
-		return 'D';
-	case BiomeType::Savanna:
-		return 'S';
-	case BiomeType::TropicalRainforest:
-		return 'T';
-	case BiomeType::Grassland:
-		return 'G';
-	case BiomeType::DeciduousForest:
-		return 'F';
-	case BiomeType::TemperateRainforest:
-		return 'R';
-	case BiomeType::Tundra:
-		return 'U';
-	case BiomeType::Taiga:
-		return 'A';
-	case BiomeType::FrozenOcean:
-		return 'O';
+// Color mapping for different base tile types
+const char *get_tile_color(istd::BaseTileType type) {
+	switch (type) {
+	case istd::BaseTileType::Land:
+		return "#90EE90"; // Light green
+	case istd::BaseTileType::Mountain:
+		return "#8B4513"; // Saddle brown
+	case istd::BaseTileType::Sand:
+		return "#F4A460"; // Sandy brown
+	case istd::BaseTileType::Water:
+		return "#1E90FF"; // Dodger blue
+	case istd::BaseTileType::Ice:
+		return "#B0E0E6"; // Powder blue
+	default:
+		return "#808080"; // Gray for unknown types
 	}
-	return '?';
 }
 
-// Function to get biome name as string
-const char *get_biome_name(BiomeType biome) {
-	switch (biome) {
-	case BiomeType::Desert:
-		return "Desert";
-	case BiomeType::Savanna:
-		return "Savanna";
-	case BiomeType::TropicalRainforest:
-		return "Tropical Rainforest";
-	case BiomeType::Grassland:
-		return "Grassland";
-	case BiomeType::DeciduousForest:
-		return "Deciduous Forest";
-	case BiomeType::TemperateRainforest:
-		return "Temperate Rainforest";
-	case BiomeType::Tundra:
-		return "Tundra";
-	case BiomeType::Taiga:
-		return "Taiga";
-	case BiomeType::FrozenOcean:
-		return "Frozen Ocean";
+// Generate SVG file from tilemap
+void generate_svg(const istd::TileMap &tilemap, const std::string &filename) {
+	std::ofstream file(filename);
+	if (!file.is_open()) {
+		std::cerr << "Error: Could not open output file: " << filename
+				  << std::endl;
+		return;
 	}
-	return "Unknown";
+
+	const int chunks_per_side = tilemap.get_size();
+	const int tiles_per_chunk = istd::Chunk::size;
+	const int total_tiles = chunks_per_side * tiles_per_chunk;
+	const int tile_size = 2; // Size of each tile in SVG pixels
+	const int svg_size = total_tiles * tile_size;
+
+	// SVG header
+	file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+	file << "<svg width=\"" << svg_size << "\" height=\"" << svg_size
+		 << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+	file << "<title>Tilemap Visualization</title>\n";
+
+	// Generate tiles
+	for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
+		for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
+			const auto &chunk = tilemap.get_chunk(chunk_x, chunk_y);
+
+			for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
+				for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
+					const auto &tile = chunk.tiles[tile_x][tile_y];
+
+					int global_x = chunk_x * tiles_per_chunk + tile_x;
+					int global_y = chunk_y * tiles_per_chunk + tile_y;
+
+					int svg_x = global_x * tile_size;
+					int svg_y = global_y * tile_size;
+
+					const char *color = get_tile_color(tile.base);
+
+					file << "<rect x=\"" << svg_x << "\" y=\"" << svg_y
+						 << "\" width=\"" << tile_size << "\" height=\""
+						 << tile_size << "\" fill=\"" << color << "\"/>\n";
+				}
+			}
+		}
+	}
+
+	// Add grid lines for chunk boundaries
+	file << "<!-- Chunk boundaries -->\n";
+	for (int i = 0; i <= chunks_per_side; ++i) {
+		int pos = i * tiles_per_chunk * tile_size;
+		// Vertical lines
+		file << "<line x1=\"" << pos << "\" y1=\"0\" x2=\"" << pos << "\" y2=\""
+			 << svg_size << "\" stroke=\"black\" stroke-width=\"2\"/>\n";
+		// Horizontal lines
+		file << "<line x1=\"0\" y1=\"" << pos << "\" x2=\"" << svg_size
+			 << "\" y2=\"" << pos
+			 << "\" stroke=\"black\" stroke-width=\"2\"/>\n";
+	}
+
+	// Legend
+	file << "<!-- Legend -->\n";
+	file << "<g transform=\"translate(10, 10)\">\n";
+	file << "<rect x=\"0\" y=\"0\" width=\"200\" height=\"140\" fill=\"white\" "
+	        "stroke=\"black\" stroke-width=\"1\" opacity=\"0.9\"/>\n";
+	file << "<text x=\"10\" y=\"20\" font-family=\"Arial\" font-size=\"14\" "
+	        "font-weight=\"bold\">Legend</text>\n";
+
+	const std::pair<istd::BaseTileType, const char *> legend_items[] = {
+		{istd::BaseTileType::Land,     "Land"    },
+		{istd::BaseTileType::Mountain, "Mountain"},
+		{istd::BaseTileType::Sand,     "Sand"    },
+		{istd::BaseTileType::Water,    "Water"   },
+		{istd::BaseTileType::Ice,      "Ice"     }
+	};
+
+	for (int i = 0; i < 5; ++i) {
+		int y_pos = 40 + i * 20;
+		file << "<rect x=\"10\" y=\"" << (y_pos - 10)
+			 << "\" width=\"15\" height=\"15\" fill=\""
+			 << get_tile_color(legend_items[i].first)
+			 << "\" stroke=\"black\" stroke-width=\"1\"/>\n";
+		file << "<text x=\"30\" y=\"" << y_pos
+			 << "\" font-family=\"Arial\" font-size=\"12\">"
+			 << legend_items[i].second << "</text>\n";
+	}
+	file << "</g>\n";
+
+	file << "</svg>\n";
+	file.close();
+
+	std::cout << "SVG file generated: " << filename << std::endl;
+	std::cout << "Tilemap size: " << total_tiles << "x" << total_tiles
+			  << " tiles" << std::endl;
+	std::cout << "Chunks: " << chunks_per_side << "x" << chunks_per_side
+			  << std::endl;
 }
 
-int main() {
-	std::cout << "=== Biome System Demo ===" << std::endl;
-	std::cout << "This demo shows biome distribution based on temperature and "
-	             "humidity"
-			  << std::endl;
-	std::cout << "Legend:" << std::endl;
-	std::cout << "  D = Desert        S = Savanna       T = Tropical"
-			  << std::endl;
-	std::cout << "  G = Grassland     F = Deciduous     R = Temp.Rain"
-			  << std::endl;
-	std::cout << "  U = Tundra        A = Taiga         O = Frozen"
-			  << std::endl;
-	std::cout << std::endl;
+// Print statistics about the generated map
+void print_statistics(const istd::TileMap &tilemap) {
+	int tile_counts[5] = {0}; // Count for each base tile type
+	const int chunks_per_side = tilemap.get_size();
+	const int tiles_per_chunk = istd::Chunk::size;
 
-	// Create a tilemap for biome demonstration
-	constexpr std::uint8_t map_size = 3; // 3x3 chunks for compact display
-	TileMap tilemap(map_size);
+	for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
+		for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
+			const auto &chunk = tilemap.get_chunk(chunk_x, chunk_y);
 
-	// Configure generation with good biome variety
-	GenerationConfig config;
-	config.seed = 98765;
-	config.temperature_scale = 0.003; // Larger temperature zones
-	config.humidity_scale = 0.004;    // Larger humidity zones
+			for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
+				for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
+					const auto &tile = chunk.tiles[tile_x][tile_y];
+					tile_counts[static_cast<int>(tile.base)]++;
+				}
+			}
+		}
+	}
 
-	std::cout << "Generating " << static_cast<int>(map_size) << "x"
-			  << static_cast<int>(map_size) << " chunks..." << std::endl;
+	const char *tile_names[] = {"Land", "Mountain", "Sand", "Water", "Ice"};
+	int total_tiles
+		= chunks_per_side * chunks_per_side * tiles_per_chunk * tiles_per_chunk;
+
+	std::cout << "\nTile Statistics:\n";
+	std::cout << "================\n";
+	for (int i = 0; i < 5; ++i) {
+		double percentage = (double)tile_counts[i] / total_tiles * 100.0;
+		std::cout << std::setw(10) << tile_names[i] << ": " << std::setw(8)
+				  << tile_counts[i] << " (" << std::fixed
+				  << std::setprecision(1) << percentage << "%)\n";
+	}
+	std::cout << "Total tiles: " << total_tiles << std::endl;
+}
+
+int main(int argc, char *argv[]) {
+	// Parse command line arguments
+	if (argc != 3) {
+		std::cerr << "Usage: " << argv[0] << " <seed> <output_file.svg>\n";
+		std::cerr << "Example: " << argv[0] << " 12345 output.svg\n";
+		return 1;
+	}
+
+	std::uint64_t seed = std::strtoull(argv[1], nullptr, 10);
+	std::string output_filename = argv[2];
+
+	// Validate output filename
+	if (output_filename.length() < 4
+	    || output_filename.substr(output_filename.length() - 4) != ".svg") {
+		std::cerr << "Error: Output filename must end with .svg\n";
+		return 1;
+	}
+
+	std::cout << "Generating 4x4 chunk tilemap with seed: " << seed
+			  << std::endl;
+
+	// Create 4x4 chunk tilemap
+	istd::TileMap tilemap(4);
+
+	// Configure generation parameters
+	istd::GenerationConfig config;
+	config.seed = seed;
+	config.temperature_scale = 0.005;
+	config.humidity_scale = 0.007;
+	config.base_scale = 0.08;
 
 	// Generate the map
-	map_generate(tilemap, config);
+	std::cout << "Generating terrain..." << std::endl;
+	istd::map_generate(tilemap, config);
 
-	std::cout << "Generation complete!" << std::endl << std::endl;
+	// Generate SVG output
+	std::cout << "Creating SVG visualization..." << std::endl;
+	generate_svg(tilemap, output_filename);
 
-	// Show biome properties
-	std::cout << "=== Biome Properties ===" << std::endl;
-	const BiomeType all_biomes[]
-		= {BiomeType::Desert,
-	       BiomeType::Savanna,
-	       BiomeType::TropicalRainforest,
-	       BiomeType::Grassland,
-	       BiomeType::DeciduousForest,
-	       BiomeType::TemperateRainforest,
-	       BiomeType::Tundra,
-	       BiomeType::Taiga,
-	       BiomeType::FrozenOcean};
-
-	for (BiomeType biome : all_biomes) {
-		const BiomeProperties &props = get_biome_properties(biome);
-		std::cout << get_biome_name(biome) << " (" << get_biome_char(biome)
-				  << "):" << std::endl;
-		std::cout << "  Base terrain - Scale: " << props.base_scale
-				  << " Octaves: " << props.base_octaves
-				  << " Persistence: " << props.base_persistence << std::endl;
-		std::cout << "  Surface features - Scale: " << props.surface_scale
-				  << " Octaves: " << props.surface_octaves
-				  << " Persistence: " << props.surface_persistence << std::endl;
-		std::cout << "  Thresholds - Water: " << props.water_threshold
-				  << " Sand: " << props.sand_threshold
-				  << " Mountain: " << props.mountain_threshold << std::endl;
-		std::cout << "  Features - Wood: " << props.wood_threshold
-				  << " Snow: " << props.snow_threshold << std::endl;
-		std::cout << std::endl;
-	}
-
-	// Sample some actual generated tiles to show the system working
-	std::cout << "=== Sample Generated Tiles ===" << std::endl;
-	for (int i = 0; i < 9; ++i) {
-		std::uint8_t chunk_x = i % map_size;
-		std::uint8_t chunk_y = i / map_size;
-		std::uint8_t local_x = 32; // Middle of chunk
-		std::uint8_t local_y = 32;
-
-		TilePos pos{chunk_x, chunk_y, local_x, local_y};
-		Tile tile = tilemap.get_tile(pos);
-
-		std::cout << "Chunk (" << static_cast<int>(chunk_x) << ","
-				  << static_cast<int>(chunk_y) << "): ";
-
-		// Convert base and surface types to readable strings
-		const char *base_names[] = {"Land", "Mountain", "Sand", "Water", "Ice"};
-		const char *surface_names[] = {"Empty", "Wood", "Snow"};
-
-		std::cout << "Base=" << base_names[static_cast<int>(tile.base)]
-				  << " Surface="
-				  << surface_names[static_cast<int>(tile.surface)] << std::endl;
-	}
-
-	// Show climate zones demonstration
-	std::cout << std::endl << "=== Climate Zone Demonstration ===" << std::endl;
-	std::cout
-		<< "Temperature/Humidity grid (each position shows resulting biome):"
-		<< std::endl;
-	std::cout << "Humidity →" << std::endl;
-
-	for (int temp = 0; temp < 3; ++temp) {
-		if (temp == 1) {
-			std::cout << "T ";
-		} else {
-			std::cout << "e ";
-		}
-
-		for (int humid = 0; humid < 3; ++humid) {
-			double temperature
-				= static_cast<double>(temp) / 2.0; // 0.0, 0.5, 1.0
-			double humidity = static_cast<double>(humid) / 2.0;
-
-			BiomeType biome = determine_biome(temperature, humidity);
-			std::cout << get_biome_char(biome) << " ";
-		}
-
-		if (temp == 1) {
-			std::cout << " ← Temperature";
-		}
-		std::cout << std::endl;
-
-		if (temp == 0) {
-			std::cout << "m ";
-		} else if (temp == 2) {
-			std::cout << "p ";
-		} else {
-			std::cout << "  ";
-		}
-	}
-
-	std::cout << std::endl;
-	std::cout << "Where: Cold(top) → Hot(bottom), Dry(left) → Wet(right)"
-			  << std::endl;
+	// Print statistics
+	print_statistics(tilemap);
 
 	return 0;
 }
