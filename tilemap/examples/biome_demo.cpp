@@ -134,14 +134,33 @@ void print_statistics(const istd::TileMap &tilemap) {
 
 int main(int argc, char *argv[]) {
 	// Parse command line arguments
-	if (argc != 3) {
-		std::cerr << "Usage: " << argv[0] << " <seed> <output_file.bmp>\n";
-		std::cerr << "Example: " << argv[0] << " 12345 output.bmp\n";
+	if (argc < 3 || argc > 4) {
+		std::cerr << "Usage: " << argv[0]
+				  << " <seed> <output_file.bmp> [chunks_per_side]\n";
+		std::cerr << "  seed           - Random seed for generation\n";
+		std::cerr << "  output_file    - Output BMP filename\n";
+		std::cerr
+			<< "  chunks_per_side- Number of chunks per side (default: 4)\n";
+		std::cerr << "Example: " << argv[0] << " 12345 output.bmp 6\n";
 		return 1;
 	}
 
 	std::uint64_t seed = std::strtoull(argv[1], nullptr, 10);
 	std::string output_filename = argv[2];
+	int chunks_per_side = 4; // Default value
+
+	// Parse optional chunks_per_side parameter
+	if (argc == 4) {
+		chunks_per_side = std::atoi(argv[3]);
+		if (chunks_per_side <= 0) {
+			std::cerr << "Error: chunks_per_side must be a positive integer\n";
+			return 1;
+		}
+		if (chunks_per_side > 20) {
+			std::cerr << "Warning: Large chunk counts may produce very large "
+			             "images\n";
+		}
+	}
 
 	// Validate output filename
 	if (output_filename.length() < 4
@@ -150,11 +169,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	std::cout << "Generating 4x4 chunk tilemap with seed: " << seed
-			  << std::endl;
+	std::cout << "Generating " << chunks_per_side << "x" << chunks_per_side
+			  << " chunk tilemap with seed: " << seed << std::endl;
 
-	// Create 4x4 chunk tilemap
-	istd::TileMap tilemap(4);
+	// Create tilemap with specified size
+	istd::TileMap tilemap(chunks_per_side);
 
 	// Configure generation parameters
 	istd::GenerationConfig config;
