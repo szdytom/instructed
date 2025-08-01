@@ -8,41 +8,43 @@ namespace istd {
 
 // Biome types based on temperature and humidity
 enum class BiomeType : std::uint8_t {
-	Desert = 0,              // Hot & Dry
-	Savanna = 1,             // Hot & Moderate
-	TropicalRainforest = 2,  // Hot & Wet
-	Grassland = 3,           // Temperate & Dry
-	DeciduousForest = 4,     // Temperate & Moderate
-	TemperateRainforest = 5, // Temperate & Wet
-	Tundra = 6,              // Cold & Dry
-	Taiga = 7,               // Cold & Moderate
-	FrozenOcean = 8          // Cold & Wet
+	SnowyPeeks = 0,  // Cold & Dry
+	SnowyPlains = 1, // Cold & Moderate
+	FrozenOcean = 2, // Cold & Wet
+	Plains = 3,      // Temperate & Dry
+	Forest = 4,      // Temperate & Moderate
+	Ocean = 5,       // Temperate & Wet
+	Desert = 6,      // Hot & Dry
+	Savanna = 7,     // Hot & Moderate
+	LukeOcean = 8,   // Hot & Wet
+};
+
+enum class BiomeTemperature : std::uint8_t {
+	Cold = 0,
+	Temperate = 1,
+	Hot = 2,
+};
+
+enum class BiomeHumidity : std::uint8_t {
+	Dry = 0,
+	Moderate = 1,
+	Wet = 2,
 };
 
 // Biome properties for terrain generation
 struct BiomeProperties {
-	// Base terrain thresholds (0.0 - 1.0)
-	double water_threshold;
-	double mountain_threshold;
-	double sand_threshold;
-	double ice_threshold;
-
-	// Surface coverage thresholds (0.0 - 1.0)
-	double wood_threshold;
-	double snow_threshold;
-
-	// Noise parameters for base terrain
-	double base_scale;
-	int base_octaves;
-	double base_persistence;
-
-	// Noise parameters for surface features
-	double surface_scale;
-	int surface_octaves;
-	double surface_persistence;
-
 	// Biome name for debugging
 	std::string_view name;
+
+	// Base terrain thresholds (0.0 - 1.0)
+	double water_threshold;
+	double ice_threshold;
+	double sand_threshold;
+	double land_threshold;
+
+	// Noise parameters for base terrain
+	int base_octaves = 3;
+	double base_persistence = 0.5;
 };
 
 // Get biome properties for terrain generation
@@ -58,13 +60,6 @@ struct SubChunkPos {
 
 	constexpr SubChunkPos(std::uint8_t x, std::uint8_t y): sub_x(x), sub_y(y) {}
 };
-
-// Convert local tile coordinates to sub-chunk position
-constexpr SubChunkPos tile_to_subchunk(
-	std::uint8_t local_x, std::uint8_t local_y
-) {
-	return SubChunkPos(local_x / 16, local_y / 16);
-}
 
 // Get the starting tile coordinates for a sub-chunk
 constexpr std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(

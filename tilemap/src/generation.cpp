@@ -2,16 +2,15 @@
 #include "biome.h"
 #include <cmath>
 #include <random>
+#include <utility>
 
 namespace istd {
 
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
 	: config_(config)
-	, base_noise_(config.seed)
-	, surface_noise_(config.seed + 500) // Different seed for surface features
-	, temperature_noise_(config.seed + 1000) // Different seed for temperature
-	, humidity_noise_(config.seed + 2000)    // Different seed for humidity
-{}
+	, base_noise_(config.seed ^ base_seed_mask)
+	, temperature_noise_(config.seed ^ temperature_seed_mask)
+	, humidity_noise_(config.seed ^ humidity_seed_mask) {}
 
 void TerrainGenerator::generate_map(TileMap &tilemap) {
 	// First, generate biome data for all chunks
@@ -93,31 +92,18 @@ void TerrainGenerator::generate_subchunk(
 
 			// Generate base terrain noise value
 			double base_noise_value = base_noise_.octave_noise(
-				global_x * properties.base_scale,
-				global_y * properties.base_scale, properties.base_octaves,
-				properties.base_persistence
-			);
-
-			// Generate surface feature noise value
-			double surface_noise_value = surface_noise_.octave_noise(
-				global_x * properties.surface_scale,
-				global_y * properties.surface_scale, properties.surface_octaves,
-				properties.surface_persistence
+				global_x * config_.base_scale, global_y * config_.base_scale,
+				properties.base_octaves, properties.base_persistence
 			);
 
 			// Determine base terrain type
 			BaseTileType base_type
 				= determine_base_type(base_noise_value, properties);
 
-			// Determine surface feature type
-			SurfaceTileType surface_type = determine_surface_type(
-				surface_noise_value, properties, base_type
-			);
-
 			// Create tile with base and surface components
 			Tile tile;
 			tile.base = base_type;
-			tile.surface = surface_type;
+			tile.surface = SurfaceTileType::Empty;
 
 			// Set the tile
 			TilePos pos{chunk_x, chunk_y, local_x, local_y};
@@ -147,37 +133,22 @@ std::pair<double, double> TerrainGenerator::get_climate(
 BaseTileType TerrainGenerator::determine_base_type(
 	double noise_value, const BiomeProperties &properties
 ) const {
-	if (noise_value < properties.water_threshold) {
-		return BaseTileType::Water;
-	} else if (noise_value < properties.sand_threshold) {
-		return BaseTileType::Sand;
-	} else if (noise_value < properties.mountain_threshold) {
-		return BaseTileType::Mountain;
-	} else if (properties.ice_threshold > 0.0
-	           && noise_value < properties.ice_threshold) {
-		return BaseTileType::Ice;
-	} else {
-		return BaseTileType::Land;
-	}
-}
+	const std::pair<BaseTileType, double> thresholds[] = {
+		{BaseTileType::Water,    properties.water_threshold},
+		{BaseTileType::Ice,      properties.ice_threshold  },
+		{BaseTileType::Sand,     properties.sand_threshold },
+		{BaseTileType::Land,     properties.land_threshold },
+		{BaseTileType::Mountain, 1.0                       },
+	};
 
-SurfaceTileType TerrainGenerator::determine_surface_type(
-	double noise_value, const BiomeProperties &properties,
-	BaseTileType base_type
-) const {
-	// Don't place surface features on water or ice
-	if (base_type == BaseTileType::Water || base_type == BaseTileType::Ice) {
-		return SurfaceTileType::Empty;
+	for (const auto &[type, threshold] : thresholds) {
+		if (noise_value < threshold) {
+			return type;
+		}
+		noise_value -= threshold; // Adjust noise value for next type
 	}
 
-	// Check for surface features based on thresholds
-	if (noise_value < properties.wood_threshold) {
-		return SurfaceTileType::Wood;
-	} else if (noise_value < properties.snow_threshold) {
-		return SurfaceTileType::Snow;
-	} else {
-		return SurfaceTileType::Empty;
-	}
+	std::unreachable();
 }
 
 // Legacy function for backward compatibility

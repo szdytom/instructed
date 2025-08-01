@@ -14,17 +14,25 @@ namespace istd {
 struct GenerationConfig {
 	std::uint64_t seed = 0; // Seed for random generation
 
-	// Climate noise parameters
+	// Noise parameters
 	double temperature_scale = 0.005; // Scale for temperature noise
 	double humidity_scale = 0.007;    // Scale for humidity noise
+	double base_scale = 0.08;         // Scale for base terrain noise
 };
 
 // Terrain generator class that manages the generation process
 class TerrainGenerator {
 private:
 	GenerationConfig config_;
+
+	// Just some random numbers to mask the seeds
+	static constexpr std::uint64_t base_seed_mask = 0x06'a9'cb'b1'b3'96'f3'50;
+	static constexpr std::uint64_t temperature_seed_mask
+		= 0x79'c8'a7'a1'09'99'd0'e3;
+	static constexpr std::uint64_t humidity_seed_mask
+		= 0x5e'10'be'e4'd2'6f'34'c2;
+
 	PerlinNoise base_noise_;        // For base terrain generation
-	PerlinNoise surface_noise_;     // For surface feature generation
 	PerlinNoise temperature_noise_; // For temperature
 	PerlinNoise humidity_noise_;    // For humidity
 
@@ -90,19 +98,6 @@ private:
 	 */
 	BaseTileType determine_base_type(
 		double noise_value, const BiomeProperties &properties
-	) const;
-
-	/**
-	 * @brief Determine surface feature type based on noise value and biome
-	 * properties
-	 * @param noise_value Surface feature noise value [0,1]
-	 * @param properties Biome properties to use
-	 * @param base_type The base terrain type (affects surface placement)
-	 * @return The appropriate surface tile type
-	 */
-	SurfaceTileType determine_surface_type(
-		double noise_value, const BiomeProperties &properties,
-		BaseTileType base_type
 	) const;
 };
 
