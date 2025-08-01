@@ -25,9 +25,9 @@ public:
     Chunk& get_chunk(std::uint8_t chunk_x, std::uint8_t chunk_y);
     const Chunk& get_chunk(std::uint8_t chunk_x, std::uint8_t chunk_y) const;
 
-    Tile& get_tile(const TilePos& pos);
-    const Tile& get_tile(const TilePos& pos) const;
-    void set_tile(const TilePos& pos, const Tile& tile);
+    Tile& get_tile(TilePos pos);
+    const Tile& get_tile(TilePos pos) const;
+    void set_tile(TilePos pos, const Tile& tile);
 };
 ```
 
@@ -48,8 +48,8 @@ struct Chunk {
     BiomeType biome[subchunk_count][subchunk_count]; // Sub-chunk biomes
 
     // Get biome for a specific sub-chunk position
-    BiomeType& get_biome(const SubChunkPos& pos);
-    const BiomeType& get_biome(const SubChunkPos& pos) const;
+    BiomeType& get_biome(SubChunkPos pos);
+    const BiomeType& get_biome(SubChunkPos pos) const;
 };
 ```
 
@@ -102,7 +102,7 @@ struct SubChunkPos {
 };
 
 std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
-    const SubChunkPos& pos
+    SubChunkPos pos
 );
 ```
 

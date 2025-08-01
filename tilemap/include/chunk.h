@@ -42,20 +42,18 @@ struct Chunk {
 	BiomeType biome[subchunk_count][subchunk_count];
 
 	// Get biome for a specific sub-chunk position
-	BiomeType &get_biome(const SubChunkPos &pos) {
+	BiomeType &get_biome(SubChunkPos pos) {
 		return biome[pos.sub_x][pos.sub_y];
 	}
 
 	// Get biome for a specific sub-chunk position (const version)
-	const BiomeType &get_biome(const SubChunkPos &pos) const {
+	const BiomeType &get_biome(SubChunkPos pos) const {
 		return biome[pos.sub_x][pos.sub_y];
 	}
 };
 
 // Get the starting tile coordinates for a sub-chunk
-std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
-	const SubChunkPos &pos
-);
+std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(SubChunkPos pos);
 
 } // namespace istd
 

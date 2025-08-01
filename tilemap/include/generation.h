@@ -85,7 +85,7 @@ private:
 	 */
 	void generate_subchunk(
 		TileMap &tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y,
-		const SubChunkPos &sub_pos, BiomeType biome
+		SubChunkPos sub_pos, BiomeType biome
 	);
 
 	/**

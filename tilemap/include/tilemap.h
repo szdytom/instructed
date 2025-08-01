@@ -38,15 +38,15 @@ public:
 	 * @brief Get a tile at the given position
 	 * @param pos The position of the tile
 	 */
-	Tile &get_tile(const TilePos &pos);
-	const Tile &get_tile(const TilePos &pos) const;
+	Tile &get_tile(TilePos pos);
+	const Tile &get_tile(TilePos pos) const;
 
 	/**
 	 * @brief Set a tile at the given position
 	 * @param pos The position of the tile
 	 * @param tile The tile to set
 	 */
-	void set_tile(const TilePos &pos, const Tile &tile);
+	void set_tile(TilePos pos, const Tile &tile);
 };
 
 } // namespace istd

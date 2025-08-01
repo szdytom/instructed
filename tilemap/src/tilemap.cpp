@@ -31,7 +31,7 @@ const Chunk &TileMap::get_chunk(
 	return chunks_[chunk_x][chunk_y];
 }
 
-Tile &TileMap::get_tile(const TilePos &pos) {
+Tile &TileMap::get_tile(TilePos pos) {
 	if (pos.chunk_x >= size_ || pos.chunk_y >= size_) {
 		throw std::out_of_range("Chunk coordinates out of bounds");
 	}
@@ -41,7 +41,7 @@ Tile &TileMap::get_tile(const TilePos &pos) {
 	return chunks_[pos.chunk_x][pos.chunk_y].tiles[pos.local_x][pos.local_y];
 }
 
-const Tile &TileMap::get_tile(const TilePos &pos) const {
+const Tile &TileMap::get_tile(TilePos pos) const {
 	if (pos.chunk_x >= size_ || pos.chunk_y >= size_) {
 		throw std::out_of_range("Chunk coordinates out of bounds");
 	}
@@ -51,7 +51,7 @@ const Tile &TileMap::get_tile(const TilePos &pos) const {
 	return chunks_[pos.chunk_x][pos.chunk_y].tiles[pos.local_x][pos.local_y];
 }
 
-void TileMap::set_tile(const TilePos &pos, const Tile &tile) {
+void TileMap::set_tile(TilePos pos, const Tile &tile) {
 	if (pos.chunk_x >= size_ || pos.chunk_y >= size_) {
 		throw std::out_of_range("Chunk coordinates out of bounds");
 	}
