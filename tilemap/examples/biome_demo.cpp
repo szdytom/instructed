@@ -2,10 +2,11 @@
 #include "generation.h"
 #include "tile.h"
 #include "tilemap.h"
+#include <chrono>
 #include <cstdlib>
 #include <format>
-#include <iomanip>
 #include <iostream>
+#include <print>
 #include <string>
 
 // Get BMP color for different base tile types
@@ -65,18 +66,14 @@ void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 	}
 
 	if (!bmp.save(filename)) {
-		std::cerr << "Error: Could not save BMP file: " << filename
-				  << std::endl;
+		std::println(stderr, "Error: Could not save BMP file: {}", filename);
 		return;
 	}
 
-	std::cout << "BMP file generated: " << filename << std::endl;
-	std::cout << "Image size: " << image_size << "x" << image_size << " pixels"
-			  << std::endl;
-	std::cout << "Tilemap size: " << total_tiles << "x" << total_tiles
-			  << " tiles" << std::endl;
-	std::cout << "Chunks: " << chunks_per_side << "x" << chunks_per_side
-			  << std::endl;
+	std::println("BMP file generated: {}", filename);
+	std::println("Image size: {}x{} pixels", image_size, image_size);
+	std::println("Tilemap size: {}x{} tiles", total_tiles, total_tiles);
+	std::println("Chunks: {}x{}", chunks_per_side, chunks_per_side);
 }
 
 // Print statistics about the generated map
@@ -102,27 +99,30 @@ void print_statistics(const istd::TileMap &tilemap) {
 	int total_tiles
 		= chunks_per_side * chunks_per_side * tiles_per_chunk * tiles_per_chunk;
 
-	std::cout << "\nTile Statistics:\n";
-	std::cout << "================\n";
+	std::println("\nTile Statistics:");
+	std::println("================");
 	for (int i = 0; i < 5; ++i) {
 		double percentage = (double)tile_counts[i] / total_tiles * 100.0;
-		std::cout << std::setw(10) << tile_names[i] << ": " << std::setw(8)
-				  << tile_counts[i] << " (" << std::fixed
-				  << std::setprecision(1) << percentage << "%)\n";
+		std::println(
+			"{:>10}: {:>8} ({:.1f}%)", tile_names[i], tile_counts[i], percentage
+		);
 	}
-	std::cout << "Total tiles: " << total_tiles << std::endl;
+	std::println("Total tiles: {}", total_tiles);
 }
 
 int main(int argc, char *argv[]) {
 	// Parse command line arguments
 	if (argc > 4) {
-		std::cerr << "Usage: " << argv[0]
-				  << " <seed> <output_file.bmp> [chunks_per_side]\n";
-		std::cerr << "  seed           - Random seed for generation\n";
-		std::cerr << "  output_file    - Output BMP filename\n";
-		std::cerr
-			<< "  chunks_per_side- Number of chunks per side (default: 4)\n";
-		std::cerr << "Example: " << argv[0] << " 12345 output.bmp 6\n";
+		std::println(
+			stderr, "Usage: {} <seed> <output_file.bmp> [chunks_per_side]",
+			argv[0]
+		);
+		std::println(stderr, "  seed           - Random seed for generation");
+		std::println(stderr, "  output_file    - Output BMP filename");
+		std::println(
+			stderr, "  chunks_per_side- Number of chunks per side (default: 4)"
+		);
+		std::println(stderr, "Example: {} 12345 output.bmp 6", argv[0]);
 		return 1;
 	}
 
@@ -135,25 +135,30 @@ int main(int argc, char *argv[]) {
 	if (argc == 4) {
 		chunks_per_side = std::atoi(argv[3]);
 		if (chunks_per_side <= 0) {
-			std::cerr << "Error: chunks_per_side must be a positive integer\n";
+			std::println(
+				stderr, "Error: chunks_per_side must be a positive integer"
+			);
 			return 1;
 		}
 		if (chunks_per_side > 20) {
-			std::cerr << "Warning: Large chunk counts may produce very large "
-						 "images\n";
+			std::println(
+				stderr,
+				"Warning: Large chunk counts may produce very large images"
+			);
 		}
 	}
 
 	// Validate output filename
 	if (output_filename.length() < 4
 	    || output_filename.substr(output_filename.length() - 4) != ".bmp") {
-		std::cerr << "Error: Output filename must end with .bmp\n";
+		std::println(stderr, "Error: Output filename must end with .bmp");
 		return 1;
 	}
 
-	std::cout << "Generating " << chunks_per_side << "x" << chunks_per_side
-			  << " chunk tilemap with seed: " << seed.s[0] << ", " << seed.s[1]
-			  << std::endl;
+	std::println(
+		"Generating {}x{} chunk tilemap with seed: {}, {}", chunks_per_side,
+		chunks_per_side, seed.s[0], seed.s[1]
+	);
 
 	// Create tilemap with specified size
 	istd::TileMap tilemap(chunks_per_side);
@@ -163,11 +168,34 @@ int main(int argc, char *argv[]) {
 	config.seed = seed;
 
 	// Generate the map
-	std::cout << "Generating terrain..." << std::endl;
+	std::println("Generating terrain...");
+
+	// Start timing
+	auto start_time = std::chrono::high_resolution_clock::now();
+
 	istd::map_generate(tilemap, config);
 
+	// End timing and calculate duration
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+		end_time - start_time
+	);
+
+	// Convert to appropriate units for display
+	if (duration.count() < 1000) {
+		std::println(
+			"Map generation completed in {} microseconds", duration.count()
+		);
+	} else if (duration.count() < 1000000) {
+		double ms = duration.count() / 1000.0;
+		std::println("Map generation completed in {:.2f} milliseconds", ms);
+	} else {
+		double seconds = duration.count() / 1000000.0;
+		std::println("Map generation completed in {:.3f} seconds", seconds);
+	}
+
 	// Generate BMP output
-	std::cout << "Creating BMP visualization..." << std::endl;
+	std::println("Creating BMP visualization...");
 	generate_bmp(tilemap, output_filename);
 
 	// Print statistics
