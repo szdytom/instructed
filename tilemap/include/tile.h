@@ -12,14 +12,12 @@ enum class BaseTileType : std::uint8_t {
 	Sand,
 	Water,
 	Ice,
+	Deepwater,
 	_count
 };
 
 enum class SurfaceTileType : std::uint8_t {
 	Empty,
-	Wood,
-	Structure, // Indicates this tile is occupied by a player-built structure,
-	           // should never be natually generated.
 	_count
 };
 

@@ -234,6 +234,7 @@ constexpr Color MOUNTAIN(139, 69, 19); // Saddle brown
 constexpr Color SAND(244, 164, 96);    // Sandy brown
 constexpr Color WATER(30, 144, 255);   // Dodger blue
 constexpr Color ICE(176, 224, 230);    // Powder blue
+constexpr Color DEEPWATER(0, 0, 139);  // Dark blue
 } // namespace BmpColors
 
 #endif // BMP_H

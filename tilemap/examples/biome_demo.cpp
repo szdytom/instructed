@@ -22,6 +22,8 @@ BmpColors::Color get_tile_color(istd::BaseTileType type) {
 		return BmpColors::WATER;
 	case istd::BaseTileType::Ice:
 		return BmpColors::ICE;
+	case istd::BaseTileType::Deepwater:
+		return BmpColors::DEEPWATER;
 	default:
 		return BmpColors::Color(128, 128, 128); // Gray for unknown types
 	}
@@ -78,7 +80,9 @@ void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 
 // Print statistics about the generated map
 void print_statistics(const istd::TileMap &tilemap) {
-	int tile_counts[5] = {0}; // Count for each base tile type
+	int tile_counts[6] = {
+		0
+	}; // Count for each base tile type (now 6 types including Deepwater)
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
 
@@ -95,13 +99,14 @@ void print_statistics(const istd::TileMap &tilemap) {
 		}
 	}
 
-	const char *tile_names[] = {"Land", "Mountain", "Sand", "Water", "Ice"};
+	const char *tile_names[]
+		= {"Land", "Mountain", "Sand", "Water", "Ice", "Deepwater"};
 	int total_tiles
 		= chunks_per_side * chunks_per_side * tiles_per_chunk * tiles_per_chunk;
 
 	std::println("\nTile Statistics:");
 	std::println("================");
-	for (int i = 0; i < 5; ++i) {
+	for (int i = 0; i < 6; ++i) {
 		double percentage = (double)tile_counts[i] / total_tiles * 100.0;
 		std::println(
 			"{:>10}: {:>8} ({:.1f}%)", tile_names[i], tile_counts[i], percentage

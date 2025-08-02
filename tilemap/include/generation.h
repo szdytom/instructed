@@ -35,7 +35,8 @@ struct GenerationConfig {
 		= 2;  // Number of steps for mountain smoothing cellular automata
 	std::uint32_t mountain_remove_threshold
 		= 10; // Threshold for mountain removal
-	std::uint32_t fill_threshold = 10; // Fill holes smaller than this size
+	std::uint32_t fill_threshold = 10;  // Fill holes smaller than this size
+	std::uint32_t deepwater_radius = 2; // Radius for deepwater generation
 };
 
 class BiomeGenerationPass {
@@ -264,6 +265,66 @@ private:
 	 * @param tilemap The tilemap to process
 	 */
 	void hole_fill_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Generate deepwater tiles in ocean biomes
+	 * @param tilemap The tilemap to process
+	 */
+	void deepwater_pass(TileMap &tilemap);
+};
+
+class DeepwaterGenerationPass {
+private:
+	std::uint32_t deepwater_radius_;
+
+public:
+	/**
+	 * @brief Construct a deepwater generation pass
+	 * @param deepwater_radius Radius to check for water tiles around each water
+	 * tile (default: 1)
+	 */
+	explicit DeepwaterGenerationPass(std::uint32_t deepwater_radius);
+
+	/**
+	 * @brief Generate deepwater tiles in ocean biomes
+	 * @param tilemap The tilemap to process
+	 */
+	void operator()(TileMap &tilemap);
+
+private:
+	/**
+	 * @brief Check if a tile position is within a certain radius and all tiles
+	 * are water
+	 * @param tilemap The tilemap to check
+	 * @param center_pos Center position to check around
+	 * @param radius Radius to check within
+	 * @return True if all tiles within radius are water
+	 */
+
+private:
+	/**
+	 * @brief Process an ocean sub-chunk to generate deepwater tiles
+	 * @param tilemap The tilemap to process
+	 * @param chunk_x Chunk X coordinate
+	 * @param chunk_y Chunk Y coordinate
+	 * @param sub_pos Sub-chunk position within the chunk
+	 */
+	void process_ocean_subchunk(
+		TileMap &tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y,
+		SubChunkPos sub_pos
+	);
+
+	/**
+	 * @brief Check if a tile position is within a certain radius and all tiles
+	 * are water or deepwater
+	 * @param tilemap The tilemap to check
+	 * @param center_pos Center position to check around
+	 * @param radius Radius to check within
+	 * @return True if all tiles within radius are water or deepwater
+	 */
+	bool is_surrounded_by_water(
+		const TileMap &tilemap, TilePos center_pos, std::uint32_t radius
+	) const;
 };
 
 /**
