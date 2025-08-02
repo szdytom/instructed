@@ -5,9 +5,7 @@
 #include "chunk.h"
 #include "noise.h"
 #include "tilemap.h"
-#include <array>
 #include <cstdint>
-#include <queue>
 #include <vector>
 
 namespace istd {
@@ -28,13 +26,18 @@ struct GenerationConfig {
 	double humidity_persistence = 0.4; // Persistence for humidity noise
 
 	double base_scale = 0.08;          // Scale for base terrain noise
-	int base_octaves = 3;          // Number of octaves for base terrain noise
-	double base_persistence = 0.5; // Persistence for base terrain noise
+	int base_octaves = 3;            // Number of octaves for base terrain noise
+	double base_persistence = 0.5;   // Persistence for base terrain noise
 
-	int mountain_smoothen_steps
-		= 2;  // Number of steps for mountain smoothing cellular automata
-	std::uint32_t mountain_remove_threshold
-		= 10; // Threshold for mountain removal
+	int mountain_smoothen_steps = 2; // Number of steps for mountain smoothing
+	                                 // cellular automata
+	std::uint32_t mountain_remove_threshold = 10; // Threshold for mountain
+	                                              // removal
+
+	int island_smoothen_steps = 8; // Number of steps for island smoothing
+	                               // cellular automata
+	std::uint32_t island_remove_threshold = 8; // Threshold for island removal
+
 	std::uint32_t fill_threshold = 10;  // Fill holes smaller than this size
 	std::uint32_t deepwater_radius = 2; // Radius for deepwater generation
 };
@@ -222,6 +225,72 @@ public:
 	void operator()(TileMap &tilemap);
 };
 
+class SmoothenIslandPass {
+private:
+	const GenerationConfig &config_;
+	DiscreteRandomNoise noise_;
+
+	/**
+	 * @brief Perform BFS to find connected component size for islands
+	 * @param tilemap The tilemap to search
+	 * @param start_pos Starting position for BFS
+	 * @param visited 2D array tracking visited tiles
+	 * @param positions Output vector of positions in this component
+	 * @return Size of the connected component
+	 */
+	std::uint32_t bfs_component_size(
+		TileMap &tilemap, TilePos start_pos,
+		std::vector<std::vector<bool>> &visited, std::vector<TilePos> &positions
+	);
+
+	/**
+	 * @brief Remove small island components to create smoother terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void remove_small_island(TileMap &tilemap);
+
+	/**
+	 * @brief Smoothen islands with cellular automata
+	 * @param tilemap The tilemap to process
+	 */
+	void smoothen_islands(TileMap &tilemap, std::uint32_t step_i);
+
+	void smoothen_islands_subchunk(
+		TileMap &tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y,
+		SubChunkPos sub_pos, std::uint32_t step_i,
+		std::vector<std::pair<TilePos, Tile>> &replacements
+	);
+
+	struct CACtx {
+		BiomeType biome;
+		std::uint8_t rand;
+		int adj_land, adj_sand, adj_water; // Adjacent tile counts
+	};
+
+	Tile ca_tile(TilePos pos, Tile tile, const CACtx &ctx) const;
+
+	/**
+	 * @brief Check if a tile is part of an island (Land or Sand)
+	 * @param tile The tile to check
+	 * @return True if the tile is Land or Sand
+	 */
+	bool is_island_tile(const Tile &tile) const;
+
+public:
+	/**
+	 * @brief Construct an island smoothing pass
+	 * @param config Generation configuration parameters
+	 * @param rng Random number generator for terrain replacement
+	 */
+	SmoothenIslandPass(const GenerationConfig &config, Xoroshiro128PP rng);
+
+	/**
+	 * @brief Smoothen islands in the terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void operator()(TileMap &tilemap);
+};
+
 // Terrain generator class that manages the generation process
 class TerrainGenerator {
 private:
@@ -259,6 +328,12 @@ private:
 	 * @param tilemap The tilemap to process
 	 */
 	void smoothen_mountains_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Smoothen islands in the terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void smoothen_islands_pass(TileMap &tilemap);
 
 	/**
 	 * @brief Fill small holes in the terrain

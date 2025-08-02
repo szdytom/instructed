@@ -1,6 +1,7 @@
 #include "biome.h"
 #include "chunk.h"
 #include "generation.h"
+#include <utility>
 
 namespace istd {
 
@@ -57,12 +58,14 @@ void BaseTileTypeGenerationPass::generate_subchunk(
 			double global_y = chunk_y * Chunk::size + local_y;
 
 			// Generate base terrain noise value using uniform distribution
-			double base_noise_value
-				= base_noise_.uniform_noise(global_x, global_y);
+			double base_noise_value = base_noise_.uniform_noise(
+				global_x, global_y
+			);
 
 			// Determine base terrain type
-			BaseTileType base_type
-				= determine_base_type(base_noise_value, properties);
+			BaseTileType base_type = determine_base_type(
+				base_noise_value, properties
+			);
 
 			// Create tile with base and surface components
 			Tile tile;

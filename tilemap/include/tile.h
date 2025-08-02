@@ -33,6 +33,7 @@ static_assert(surface_tile_count <= 16, "Surface tile don't fit in 4 bits");
 struct Tile {
 	BaseTileType base : 4;
 	SurfaceTileType surface : 4;
+	friend bool operator==(Tile lhs, Tile rhs) = default;
 };
 
 static_assert(sizeof(Tile) == 1);

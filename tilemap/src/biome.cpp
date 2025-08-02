@@ -36,10 +36,10 @@ constexpr BiomeProperties biome_properties[] = {
      .temperature = BiomeTemperature::Cold,
      .humidity = BiomeHumidity::Wet,
      .is_ocean = true,
-     .water_ratio = .1,
-     .ice_ratio = .7,
-     .sand_ratio = .25,
-     .land_ratio = .05,
+     .water_ratio = .15,
+     .ice_ratio = .8,
+     .sand_ratio = .05,
+     .land_ratio = .0,
 	 },
 	// Plains (Temperate & Dry)
 	{
@@ -69,10 +69,10 @@ constexpr BiomeProperties biome_properties[] = {
      .temperature = BiomeTemperature::Temperate,
      .humidity = BiomeHumidity::Wet,
      .is_ocean = true,
-     .water_ratio = .8,
+     .water_ratio = .95,
      .ice_ratio = .0,
-     .sand_ratio = .15,
-     .land_ratio = .05,
+     .sand_ratio = .03,
+     .land_ratio = .02,
 	 },
 	// Desert (Hot & Dry)
 	{
@@ -82,7 +82,7 @@ constexpr BiomeProperties biome_properties[] = {
      .is_ocean = false,
      .water_ratio = .0,
      .ice_ratio = .0,
-     .sand_ratio = .8,
+     .sand_ratio = .85,
      .land_ratio = .0,
 	 },
 	// Savanna (Hot & Moderate)
@@ -102,10 +102,10 @@ constexpr BiomeProperties biome_properties[] = {
      .temperature = BiomeTemperature::Hot,
      .humidity = BiomeHumidity::Wet,
      .is_ocean = true,
-     .water_ratio = .8,
+     .water_ratio = .95,
      .ice_ratio = .0,
-     .sand_ratio = .05,
-     .land_ratio = .15,
+     .sand_ratio = .01,
+     .land_ratio = .04,
 	 },
 };
 

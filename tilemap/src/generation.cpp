@@ -1,5 +1,4 @@
 #include "generation.h"
-#include "biome.h"
 
 namespace istd {
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
@@ -9,6 +8,7 @@ void TerrainGenerator::operator()(TileMap &tilemap) {
 	biome_pass(tilemap);
 	base_tile_type_pass(tilemap);
 	smoothen_mountains_pass(tilemap);
+	smoothen_islands_pass(tilemap);
 	mountain_hole_fill_pass(tilemap);
 	deepwater_pass(tilemap);
 }

@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 	istd::Seed seed
 		= istd::Seed::from_string(argc >= 2 ? argv[1] : "hello_world");
 	std::string output_filename = argc >= 3 ? argv[2] : "output.bmp";
-	int chunks_per_side = 4; // Default value
+	int chunks_per_side = 8; // Default value
 
 	// Parse optional chunks_per_side parameter
 	if (argc == 4) {

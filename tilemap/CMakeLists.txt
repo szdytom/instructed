@@ -7,6 +7,7 @@ set(ISTD_TILEMAP_SRC
 	src/pass/deepwater.cpp
 	src/pass/mountain_hole_fill.cpp
 	src/pass/smoothen_mountain.cpp
+	src/pass/smoothen_island.cpp
 	src/generation.cpp
 	src/tilemap.cpp
 	src/noise.cpp
