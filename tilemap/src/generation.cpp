@@ -277,10 +277,10 @@ SmoothenMountainsPass::SmoothenMountainsPass(
 	: config_(config), noise_(rng) {}
 
 void SmoothenMountainsPass::operator()(TileMap &tilemap) {
-	for (int i = 1; i <= config_.mountain_smoothen_iteration_n; ++i) {
+	remove_small_mountain(tilemap);
+	for (int i = 1; i <= config_.mountain_smoothen_steps; ++i) {
 		smoothen_mountains(tilemap, i);
 	}
-
 	remove_small_mountain(tilemap);
 }
 
@@ -423,7 +423,7 @@ std::uint32_t SmoothenMountainsPass::bfs_component_size(
 }
 
 void SmoothenMountainsPass::smoothen_mountains(
-	TileMap &tilemap, std::uint32_t iteration_id
+	TileMap &tilemap, std::uint32_t step_i
 ) {
 	struct CAConf {
 		int neighbor_count;
@@ -432,51 +432,13 @@ void SmoothenMountainsPass::smoothen_mountains(
 	};
 
 	// Chance to fill or remove a mountain tile repects to the number of
-	// neighboring mountains (0 - 8)
-	constexpr CAConf cellularAutomataConfigurations[9] = {
-		{
-         .neighbor_count = 0,
-         .remove_chance = 16,
-		 },
-		{
-         .neighbor_count = 1,
-         .fill_chance = 1,
-         .remove_chance = 8,
-		 },
-		{
-         .neighbor_count = 2,
-         .fill_chance = 1,
-         .remove_chance = 4,
-		 },
-		{
-         .neighbor_count = 3,
-         .fill_chance = 2,
-         .remove_chance = 2,
-		 },
-		{
-         .neighbor_count = 4,
-         .fill_chance = 5,
-         .remove_chance = 5,
-		 },
-		{
-         .neighbor_count = 5,
-         .fill_chance = 6,
-         .remove_chance = 3,
-		 },
-		{
-         .neighbor_count = 6,
-         .fill_chance = 7,
-         .remove_chance = 2,
-		 },
-		{
-         .neighbor_count = 7,
-         .fill_chance = 8,
-         .remove_chance = 1,
-		 },
-		{
-         .neighbor_count = 8,
-         .fill_chance = 16,
-		 }
+	// neighboring mountains (0 - 4)
+	constexpr CAConf cellularAutomataConfigurations[5] = {
+		{0, 0,  12},
+        {1, 0,  4 },
+        {2, 3,  1 },
+        {3, 8,  0 },
+        {4, 16, 0 }
 	};
 
 	for (std::uint8_t chunk_x = 0; chunk_x < tilemap.get_size(); ++chunk_x) {
@@ -487,10 +449,10 @@ void SmoothenMountainsPass::smoothen_mountains(
 				     ++local_y) {
 					TilePos pos{chunk_x, chunk_y, local_x, local_y};
 					auto [global_x, global_y] = pos.to_global();
-					auto neighbors = tilemap.get_neighbors(pos, true);
+					auto neighbors = tilemap.get_neighbors(pos);
 
 					// Ignore if adjacent to the boundary
-					if (neighbors.size() < 8) {
+					if (neighbors.size() < 4) {
 						continue;
 					}
 
@@ -506,8 +468,7 @@ void SmoothenMountainsPass::smoothen_mountains(
 					// Get the configuration for this count
 					const CAConf &conf
 						= cellularAutomataConfigurations[mountain_count];
-					int rd
-						= noise_.noise(global_x, global_y, iteration_id) & 0xF;
+					int rd = noise_.noise(global_x, global_y, step_i) & 0xF;
 
 					Tile &tile = tilemap.get_tile(pos);
 					if (tile.base == BaseTileType::Mountain

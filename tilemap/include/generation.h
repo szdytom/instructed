@@ -31,9 +31,10 @@ struct GenerationConfig {
 	int base_octaves = 3;          // Number of octaves for base terrain noise
 	double base_persistence = 0.5; // Persistence for base terrain noise
 
-	int mountain_smoothen_iteration_n = 3;
+	int mountain_smoothen_steps
+		= 2;  // Number of steps for mountain smoothing cellular automata
 	std::uint32_t mountain_remove_threshold
-		= 10;                          // Threshold for mountain removal
+		= 10; // Threshold for mountain removal
 	std::uint32_t fill_threshold = 10; // Fill holes smaller than this size
 };
 
@@ -203,7 +204,7 @@ private:
 	 * @brief Smoothen mountains with cellular automata
 	 * @param tilemap The tilemap to process
 	 */
-	void smoothen_mountains(TileMap &tilemap, std::uint32_t iteration_id);
+	void smoothen_mountains(TileMap &tilemap, std::uint32_t step_i);
 
 public:
 	/**
