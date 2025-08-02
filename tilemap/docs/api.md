@@ -8,7 +8,7 @@ The tilemap library provides a flexible system for generating and managing tile-
 - **Chunk**: 64x64 tile containers with biome information
 - **Tile**: Individual map tiles with base and surface types
 - **TerrainGenerator**: Pass-based procedural terrain generation system
-- **Generation Passes**: Modular generation components (biome, base terrain)
+- **Generation Passes**: Modular generation components (biome, base terrain, hole filling)
 - **Biome System**: Climate-based terrain variation
 
 ## Core Classes
@@ -120,19 +120,22 @@ struct GenerationConfig {
     Seed seed;                                    // 128-bit seed for random generation
 
     // Temperature noise parameters
-    double temperature_scale = /*default value*/;             // Scale for temperature noise
-    int temperature_octaves = /*default value*/;                 // Number of octaves for temperature noise
-    double temperature_persistence = /*default value*/;       // Persistence for temperature noise
+    double temperature_scale = 0.05;             // Scale for temperature noise
+    int temperature_octaves = 3;                 // Number of octaves for temperature noise
+    double temperature_persistence = 0.4;       // Persistence for temperature noise
 
     // Humidity noise parameters
-    double humidity_scale = /*default value*/;               // Scale for humidity noise
-    int humidity_octaves = /*default value*/;                   // Number of octaves for humidity noise
-    double humidity_persistence = /*default value*/;         // Persistence for humidity noise
+    double humidity_scale = 0.05;               // Scale for humidity noise
+    int humidity_octaves = 3;                   // Number of octaves for humidity noise
+    double humidity_persistence = 0.4;         // Persistence for humidity noise
 
     // Base terrain noise parameters
-    double base_scale = /*default value*/;                   // Scale for base terrain noise
-    int base_octaves = /*default value*/;                       // Number of octaves for base terrain noise
-    double base_persistence = /*default value*/;             // Persistence for base terrain noise
+    double base_scale = 0.08;                   // Scale for base terrain noise
+    int base_octaves = 3;                       // Number of octaves for base terrain noise
+    double base_persistence = 0.5;             // Persistence for base terrain noise
+
+    // Hole filling parameters
+    std::uint32_t fill_threshold = 16;          // Fill holes smaller than this size
 };
 ```
 
@@ -148,6 +151,7 @@ struct GenerationConfig {
 - `base_scale`: Controls the scale/frequency of base terrain height variation
 - `base_octaves`: Number of noise octaves for base terrain
 - `base_persistence`: How much each octave contributes to base terrain noise (0.0-1.0)
+- `fill_threshold`: Maximum size of connected components to fill with mountains (hole filling)
 
 ### Generation Passes
 
@@ -208,6 +212,35 @@ private:
 - **Noise-based Distribution**: Uses calibrated noise for balanced terrain distribution
 - **Tile-level Detail**: Generates terrain at individual tile resolution
 
+#### HoleFillPass
+
+Fills small holes in the terrain using breadth-first search (BFS) algorithm.
+
+```cpp
+class HoleFillPass {
+public:
+    explicit HoleFillPass(const GenerationConfig& config);
+    void operator()(TileMap& tilemap);
+
+private:
+    bool is_passable(BaseTileType type) const;
+    std::uint32_t bfs_component_size(
+        TileMap& tilemap, TilePos start_pos,
+        std::vector<std::vector<bool>>& visited,
+        std::vector<TilePos>& positions
+    );
+    std::vector<TilePos> get_neighbors(TileMap& tilemap, TilePos pos) const;
+    bool is_at_boundary(TileMap& tilemap, TilePos pos) const;
+};
+```
+
+**Key Features:**
+- **BFS Algorithm**: Uses breadth-first search to identify connected components
+- **Boundary Awareness**: Preserves holes that touch the map boundary
+- **Size-based Filtering**: Only fills holes smaller than `fill_threshold`
+- **Mountain-as-Impassable**: Treats mountains as impassable terrain for connectivity
+- **Hole Filling**: Converts small isolated areas to mountains for cleaner terrain
+
 ### TerrainGenerator
 
 Main orchestrator class that manages the generation process using multiple passes.
@@ -221,12 +254,14 @@ public:
 private:
     void biome_pass(TileMap& tilemap);
     void base_tile_type_pass(TileMap& tilemap);
+    void hole_fill_pass(TileMap& tilemap);
 };
 ```
 
 **Generation Flow:**
 1. **Biome Pass**: Generate climate data and assign biomes to sub-chunks
 2. **Base Tile Type Pass**: Generate base terrain types based on biomes and noise
+3. **Hole Fill Pass**: Fill small holes in the terrain using BFS algorithm
 
 ### Generation Function
 
@@ -392,6 +427,9 @@ config.humidity_persistence = 0.4;
 config.base_scale = 0.08;
 config.base_octaves = 3;
 config.base_persistence = 0.5;
+
+// Hole filling settings
+config.fill_threshold = 16;  // Fill holes smaller than 16 tiles
 
 // Generate terrain
 istd::map_generate(tilemap, config);

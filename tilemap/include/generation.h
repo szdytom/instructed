@@ -7,6 +7,7 @@
 #include "tilemap.h"
 #include <array>
 #include <cstdint>
+#include <queue>
 #include <vector>
 
 namespace istd {
@@ -26,6 +27,9 @@ struct GenerationConfig {
 	double base_scale = 0.08;          // Scale for base terrain noise
 	int base_octaves = 3;          // Number of octaves for base terrain noise
 	double base_persistence = 0.5; // Persistence for base terrain noise
+
+	// Hole filling parameters
+	std::uint32_t fill_threshold = 16; // Fill holes smaller than this size
 };
 
 class BiomeGenerationPass {
@@ -120,6 +124,61 @@ public:
 	) const;
 };
 
+class HoleFillPass {
+private:
+	const GenerationConfig &config_;
+
+public:
+	/**
+	 * @brief Construct a hole fill pass
+	 * @param config Generation configuration parameters
+	 */
+	explicit HoleFillPass(const GenerationConfig &config);
+
+	/**
+	 * @brief Fill small holes in the terrain using BFS
+	 * @param tilemap The tilemap to process
+	 */
+	void operator()(TileMap &tilemap);
+
+private:
+	/**
+	 * @brief Check if a tile type is passable for BFS
+	 * @param type The base tile type to check
+	 * @return True if the tile is passable (not mountain or at boundary)
+	 */
+	bool is_passable(BaseTileType type) const;
+
+	/**
+	 * @brief Perform BFS to find connected component size
+	 * @param tilemap The tilemap to search
+	 * @param start_pos Starting position for BFS
+	 * @param visited 2D array tracking visited tiles
+	 * @param positions Output vector of positions in this component
+	 * @return Size of the connected component
+	 */
+	std::uint32_t bfs_component_size(
+		TileMap &tilemap, TilePos start_pos,
+		std::vector<std::vector<bool>> &visited, std::vector<TilePos> &positions
+	);
+
+	/**
+	 * @brief Get all valid neighbors of a position
+	 * @param tilemap The tilemap for bounds checking
+	 * @param pos The position to get neighbors for
+	 * @return Vector of valid neighbor positions
+	 */
+	std::vector<TilePos> get_neighbors(TileMap &tilemap, TilePos pos) const;
+
+	/**
+	 * @brief Check if a position is at the map boundary
+	 * @param tilemap The tilemap for bounds checking
+	 * @param pos The position to check
+	 * @return True if the position is at the boundary
+	 */
+	bool is_at_boundary(TileMap &tilemap, TilePos pos) const;
+};
+
 // Terrain generator class that manages the generation process
 class TerrainGenerator {
 private:
@@ -151,6 +210,12 @@ private:
 	 * @param tilemap The tilemap to generate base types into
 	 */
 	void base_tile_type_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Fill small holes in the terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void hole_fill_pass(TileMap &tilemap);
 };
 
 /**
