@@ -31,8 +31,9 @@ struct GenerationConfig {
 	int base_octaves = 3;          // Number of octaves for base terrain noise
 	double base_persistence = 0.5; // Persistence for base terrain noise
 
+	int mountain_smoothen_iteration_n = 3;
 	std::uint32_t mountain_remove_threshold
-		= 10;                      // Threshold for mountain removal
+		= 10;                          // Threshold for mountain removal
 	std::uint32_t fill_threshold = 10; // Fill holes smaller than this size
 };
 
@@ -192,6 +193,18 @@ private:
 	 */
 	void demountainize(TileMap &tilemap, const std::vector<TilePos> &positions);
 
+	/**
+	 * @brief Remove small mountain components to create smoother terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void remove_small_mountain(TileMap &tilemap);
+
+	/**
+	 * @brief Smoothen mountains with cellular automata
+	 * @param tilemap The tilemap to process
+	 */
+	void smoothen_mountains(TileMap &tilemap, std::uint32_t iteration_id);
+
 public:
 	/**
 	 * @brief Construct a mountain smoothing pass
@@ -201,7 +214,7 @@ public:
 	SmoothenMountainsPass(const GenerationConfig &config, Xoroshiro128PP rng);
 
 	/**
-	 * @brief Remove small mountain components to create smoother terrain
+	 * @brief Smoothen mountains in the terrain
 	 * @param tilemap The tilemap to process
 	 */
 	void operator()(TileMap &tilemap);
