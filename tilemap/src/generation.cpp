@@ -1,7 +1,9 @@
 #include "generation.h"
 #include "biome.h"
 #include <cmath>
+#include <map>
 #include <random>
+#include <set>
 #include <utility>
 
 namespace istd {
@@ -182,8 +184,7 @@ void HoleFillPass::operator()(TileMap &tilemap) {
 				for (std::uint8_t local_y = 0; local_y < Chunk::size;
 				     ++local_y) {
 					TilePos pos{chunk_x, chunk_y, local_x, local_y};
-					std::uint32_t global_x = chunk_x * Chunk::size + local_x;
-					std::uint32_t global_y = chunk_y * Chunk::size + local_y;
+					auto [global_x, global_y] = pos.to_global();
 
 					// Skip if already visited
 					if (visited[global_x][global_y]) {
@@ -206,8 +207,8 @@ void HoleFillPass::operator()(TileMap &tilemap) {
 
 					// Check if this component touches the boundary
 					bool touches_boundary = false;
-					for (const TilePos &component_pos : component_positions) {
-						if (is_at_boundary(tilemap, component_pos)) {
+					for (const auto component_pos : component_positions) {
+						if (tilemap.is_at_boundary(component_pos)) {
 							touches_boundary = true;
 							break;
 						}
@@ -215,7 +216,7 @@ void HoleFillPass::operator()(TileMap &tilemap) {
 
 					// Fill small holes that don't touch the boundary
 					if (!touches_boundary
-					    && component_size < config_.fill_threshold) {
+					    && component_size <= config_.fill_threshold) {
 						for (const TilePos &fill_pos : component_positions) {
 							Tile fill_tile = tilemap.get_tile(fill_pos);
 							fill_tile.base = BaseTileType::Mountain;
@@ -239,11 +240,7 @@ std::uint32_t HoleFillPass::bfs_component_size(
 	std::queue<TilePos> queue;
 	queue.push(start_pos);
 
-	std::uint8_t map_size = tilemap.get_size();
-	std::uint32_t start_global_x
-		= start_pos.chunk_x * Chunk::size + start_pos.local_x;
-	std::uint32_t start_global_y
-		= start_pos.chunk_y * Chunk::size + start_pos.local_y;
+	auto [start_global_x, start_global_y] = start_pos.to_global();
 	visited[start_global_x][start_global_y] = true;
 
 	std::uint32_t size = 0;
@@ -256,13 +253,9 @@ std::uint32_t HoleFillPass::bfs_component_size(
 		++size;
 
 		// Check all neighbors
-		std::vector<TilePos> neighbors = get_neighbors(tilemap, current);
-		for (const TilePos &neighbor : neighbors) {
-			std::uint32_t neighbor_global_x
-				= neighbor.chunk_x * Chunk::size + neighbor.local_x;
-			std::uint32_t neighbor_global_y
-				= neighbor.chunk_y * Chunk::size + neighbor.local_y;
-
+		std::vector<TilePos> neighbors = tilemap.get_neighbors(current);
+		for (const auto neighbor : neighbors) {
+			auto [neighbor_global_x, neighbor_global_y] = neighbor.to_global();
 			if (visited[neighbor_global_x][neighbor_global_y]) {
 				continue;
 			}
@@ -278,56 +271,158 @@ std::uint32_t HoleFillPass::bfs_component_size(
 	return size;
 }
 
-std::vector<TilePos> HoleFillPass::get_neighbors(
-	TileMap &tilemap, TilePos pos
-) const {
-	std::vector<TilePos> neighbors;
+SmoothenMountainsPass::SmoothenMountainsPass(
+	const GenerationConfig &config, Xoroshiro128PP rng
+)
+	: config_(config), noise_(rng) {}
+
+void SmoothenMountainsPass::operator()(TileMap &tilemap) {
 	std::uint8_t map_size = tilemap.get_size();
+	std::vector<std::vector<bool>> visited(
+		map_size * Chunk::size, std::vector<bool>(map_size * Chunk::size, false)
+	);
 
-	// Calculate global coordinates
-	std::uint32_t global_x = pos.chunk_x * Chunk::size + pos.local_x;
-	std::uint32_t global_y = pos.chunk_y * Chunk::size + pos.local_y;
-	std::uint32_t max_global = map_size * Chunk::size;
+	for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
+		for (std::uint8_t chunk_y = 0; chunk_y < map_size; ++chunk_y) {
+			for (std::uint8_t local_x = 0; local_x < Chunk::size; ++local_x) {
+				for (std::uint8_t local_y = 0; local_y < Chunk::size;
+				     ++local_y) {
+					TilePos pos{chunk_x, chunk_y, local_x, local_y};
+					auto [global_x, global_y] = pos.to_global();
 
-	// Four cardinal directions
-	const int dx[] = {-1, 1, 0, 0};
-	const int dy[] = {0, 0, -1, 1};
+					// Skip if already visited
+					if (visited[global_x][global_y]) {
+						continue;
+					}
 
-	for (int i = 0; i < 4; ++i) {
-		int new_global_x = static_cast<int>(global_x) + dx[i];
-		int new_global_y = static_cast<int>(global_y) + dy[i];
+					const Tile &tile = tilemap.get_tile(pos);
+					if (tile.base != BaseTileType::Mountain) {
+						visited[global_x][global_y] = true;
+						continue;
+					}
 
-		// Check bounds
-		if (new_global_x >= 0 && new_global_x < static_cast<int>(max_global)
-		    && new_global_y >= 0
-		    && new_global_y < static_cast<int>(max_global)) {
-			// Convert back to chunk and local coordinates
-			std::uint8_t new_chunk_x = new_global_x / Chunk::size;
-			std::uint8_t new_chunk_y = new_global_y / Chunk::size;
-			std::uint8_t new_local_x = new_global_x % Chunk::size;
-			std::uint8_t new_local_y = new_global_y % Chunk::size;
+					// Find connected component of mountains
+					std::vector<TilePos> component_positions;
+					std::uint32_t component_size = bfs_component_size(
+						tilemap, pos, visited, component_positions
+					);
 
-			neighbors.push_back(
-				{new_chunk_x, new_chunk_y, new_local_x, new_local_y}
-			);
+					// If the component touches the boundary, skip it
+					bool touches_boundary = false;
+					for (auto component_pos : component_positions) {
+						if (tilemap.is_at_boundary(component_pos)) {
+							touches_boundary = true;
+							break;
+						}
+					}
+
+					// Skip if it touches the boundary
+					if (touches_boundary) {
+						continue;
+					}
+
+					// If the component is too small, smooth it out
+					if (component_size <= config_.mountain_remove_threshold) {
+						demountainize(tilemap, component_positions);
+					}
+				}
+			}
+		}
+	}
+}
+
+void SmoothenMountainsPass::demountainize(
+	TileMap &tilemap, const std::vector<TilePos> &pos
+) {
+	// Step 1: Look around the mountain to see what should replace it
+	std::map<BaseTileType, int> type_count;
+	std::set<TilePos> unique_positions;
+	for (auto p : pos) {
+		auto neighbors = tilemap.get_neighbors(p);
+		unique_positions.insert(neighbors.begin(), neighbors.end());
+	}
+
+	for (auto p : unique_positions) {
+		const Tile &tile = tilemap.get_tile(p);
+		if (tile.base != BaseTileType::Mountain) {
+			type_count[tile.base]++;
 		}
 	}
 
-	return neighbors;
+	int total_count = 0;
+	for (const auto &[type, count] : type_count) {
+		total_count += count;
+	}
+
+	if (total_count == 0) {
+		std::unreachable();
+	}
+
+	// Step 2: Replace each mountain tile with a random type based on the counts
+	for (const auto &p : pos) {
+		Tile tile = tilemap.get_tile(p);
+		auto [global_x, global_y] = p.to_global();
+		auto sample = noise_.noise(global_x, global_y);
+		int index = sample % total_count; // Not perfectly uniform, but works
+		                                  // for small counts
+		for (const auto [type, count] : type_count) {
+			if (index < count) {
+				tile.base = type;
+				break;
+			}
+			index -= count;
+		}
+		tilemap.set_tile(p, tile);
+	}
 }
 
-bool HoleFillPass::is_at_boundary(TileMap &tilemap, TilePos pos) const {
-	std::uint8_t map_size = tilemap.get_size();
-	std::uint32_t global_x = pos.chunk_x * Chunk::size + pos.local_x;
-	std::uint32_t global_y = pos.chunk_y * Chunk::size + pos.local_y;
-	std::uint32_t max_global = map_size * Chunk::size - 1;
+std::uint32_t SmoothenMountainsPass::bfs_component_size(
+	TileMap &tilemap, TilePos start_pos,
+	std::vector<std::vector<bool>> &visited, std::vector<TilePos> &positions
+) {
+	std::queue<TilePos> queue;
+	queue.push(start_pos);
 
-	return global_x == 0 || global_x == max_global || global_y == 0
-	       || global_y == max_global;
+	auto [start_global_x, start_global_y] = start_pos.to_global();
+	visited[start_global_x][start_global_y] = true;
+
+	std::uint32_t size = 0;
+	positions.clear();
+
+	while (!queue.empty()) {
+		TilePos current = queue.front();
+		queue.pop();
+		positions.push_back(current);
+		++size;
+
+		// Check all neighbors
+		std::vector<TilePos> neighbors = tilemap.get_neighbors(current, true);
+		for (const auto neighbor : neighbors) {
+			auto [neighbor_global_x, neighbor_global_y] = neighbor.to_global();
+			if (visited[neighbor_global_x][neighbor_global_y]) {
+				continue;
+			}
+
+			const Tile &neighbor_tile = tilemap.get_tile(neighbor);
+			if (neighbor_tile.base == BaseTileType::Mountain) {
+				visited[neighbor_global_x][neighbor_global_y] = true;
+				queue.push(neighbor);
+			}
+		}
+	}
+
+	return size;
 }
 
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
 	: config_(config), master_rng_(config.seed) {}
+
+void TerrainGenerator::operator()(TileMap &tilemap) {
+	biome_pass(tilemap);
+	base_tile_type_pass(tilemap);
+	smoothen_mountains_pass(tilemap);
+	hole_fill_pass(tilemap);
+}
 
 void TerrainGenerator::biome_pass(TileMap &tilemap) {
 	// Create two RNGs for temperature and humidity noise
@@ -340,19 +435,14 @@ void TerrainGenerator::biome_pass(TileMap &tilemap) {
 	biome_pass(tilemap);
 }
 
-void TerrainGenerator::operator()(TileMap &tilemap) {
-	// First, generate biome data for all chunks
-	biome_pass(tilemap);
-
-	// Then, generate base tile types based on biomes
-	base_tile_type_pass(tilemap);
-
-	// Finally, fill small holes in the terrain
-	hole_fill_pass(tilemap);
-}
-
 void TerrainGenerator::base_tile_type_pass(TileMap &tilemap) {
 	BaseTileTypeGenerationPass pass(config_, master_rng_);
+	master_rng_ = master_rng_.jump_96();
+	pass(tilemap);
+}
+
+void TerrainGenerator::smoothen_mountains_pass(TileMap &tilemap) {
+	SmoothenMountainsPass pass(config_, master_rng_);
 	master_rng_ = master_rng_.jump_96();
 	pass(tilemap);
 }

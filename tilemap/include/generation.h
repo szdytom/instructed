@@ -12,6 +12,9 @@
 
 namespace istd {
 
+/**
+ * @brief Configuration parameters for terrain generation
+ */
 struct GenerationConfig {
 	Seed seed;
 
@@ -28,8 +31,9 @@ struct GenerationConfig {
 	int base_octaves = 3;          // Number of octaves for base terrain noise
 	double base_persistence = 0.5; // Persistence for base terrain noise
 
-	// Hole filling parameters
-	std::uint32_t fill_threshold = 16; // Fill holes smaller than this size
+	std::uint32_t mountain_remove_threshold
+		= 10;                      // Threshold for mountain removal
+	std::uint32_t fill_threshold = 10; // Fill holes smaller than this size
 };
 
 class BiomeGenerationPass {
@@ -161,22 +165,46 @@ private:
 		TileMap &tilemap, TilePos start_pos,
 		std::vector<std::vector<bool>> &visited, std::vector<TilePos> &positions
 	);
+};
+
+class SmoothenMountainsPass {
+private:
+	const GenerationConfig &config_;
+	DiscreteRandomNoise noise_;
 
 	/**
-	 * @brief Get all valid neighbors of a position
-	 * @param tilemap The tilemap for bounds checking
-	 * @param pos The position to get neighbors for
-	 * @return Vector of valid neighbor positions
+	 * @brief Perform BFS to find connected component size for mountains
+	 * @param tilemap The tilemap to search
+	 * @param start_pos Starting position for BFS
+	 * @param visited 2D array tracking visited tiles
+	 * @param positions Output vector of positions in this component
+	 * @return Size of the connected component
 	 */
-	std::vector<TilePos> get_neighbors(TileMap &tilemap, TilePos pos) const;
+	std::uint32_t bfs_component_size(
+		TileMap &tilemap, TilePos start_pos,
+		std::vector<std::vector<bool>> &visited, std::vector<TilePos> &positions
+	);
 
 	/**
-	 * @brief Check if a position is at the map boundary
-	 * @param tilemap The tilemap for bounds checking
-	 * @param pos The position to check
-	 * @return True if the position is at the boundary
+	 * @brief Replace mountain tiles with terrain types from neighboring areas
+	 * @param tilemap The tilemap to modify
+	 * @param positions Vector of mountain positions to replace
 	 */
-	bool is_at_boundary(TileMap &tilemap, TilePos pos) const;
+	void demountainize(TileMap &tilemap, const std::vector<TilePos> &positions);
+
+public:
+	/**
+	 * @brief Construct a mountain smoothing pass
+	 * @param config Generation configuration parameters
+	 * @param rng Random number generator for terrain replacement
+	 */
+	SmoothenMountainsPass(const GenerationConfig &config, Xoroshiro128PP rng);
+
+	/**
+	 * @brief Remove small mountain components to create smoother terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void operator()(TileMap &tilemap);
 };
 
 // Terrain generator class that manages the generation process
@@ -210,6 +238,12 @@ private:
 	 * @param tilemap The tilemap to generate base types into
 	 */
 	void base_tile_type_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Smoothen mountains in the terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void smoothen_mountains_pass(TileMap &tilemap);
 
 	/**
 	 * @brief Fill small holes in the terrain

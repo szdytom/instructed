@@ -2,10 +2,46 @@
 #define ISTD_TILEMAP_NOISE_H
 
 #include "xoroshiro.h"
+#include <array>
 #include <cstdint>
 #include <vector>
 
 namespace istd {
+
+/**
+ * @brief Discrete random noise generator for terrain replacement operations
+ *
+ * Provides high-quality discrete random values based on Xoroshiro128++ RNG.
+ * Used for selecting terrain types during mountain smoothing operations.
+ */
+class DiscreteRandomNoise {
+private:
+	std::uint64_t mask;
+	std::array<std::uint8_t, 256> permutation_;
+
+	std::uint8_t perm(int x) const;
+	std::uint32_t map(std::uint32_t x) const;
+
+public:
+	/**
+	 * @brief Construct a DiscreteRandomNoise generator with the given seed
+	 * @param rng Random number generator for noise
+	 */
+	explicit DiscreteRandomNoise(Xoroshiro128PP rng);
+
+	DiscreteRandomNoise() = default;
+
+	/**
+	 * @brief Generate a discrete random value at the given coordinates
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @param z Z coordinate (optional)
+	 * @return Discrete random value between 0 and 255
+	 */
+	std::uint64_t noise(
+		std::uint32_t x, std::uint32_t y, std::uint32_t z = 0
+	) const;
+};
 
 class PerlinNoise {
 private:

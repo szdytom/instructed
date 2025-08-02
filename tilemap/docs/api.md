@@ -29,11 +29,18 @@ public:
     Tile& get_tile(TilePos pos);
     const Tile& get_tile(TilePos pos) const;
     void set_tile(TilePos pos, const Tile& tile);
+    
+    bool is_at_boundary(TilePos pos) const;
+    std::vector<TilePos> get_neighbors(TilePos pos, bool chebyshev = false) const;
 };
 ```
 
 **Constructor Parameters:**
 - `size`: Number of chunks per side (max 100), creating an n×n grid
+
+**New Methods:**
+- `is_at_boundary()`: Checks if a tile position is at the map boundary
+- `get_neighbors()`: Returns neighboring tile positions with optional Chebyshev distance support
 
 ### Chunk
 
@@ -42,13 +49,13 @@ Each chunk contains 64×64 tiles and sub-chunk biome information.
 ```cpp
 struct Chunk {
     static constexpr uint8_t size = 64;           // Tiles per side
-    static constexpr uint8_t subchunk_size = /*default value*/;   // Tiles per sub-chunk side
+    static constexpr uint8_t subchunk_size = 4;   // Tiles per sub-chunk side
     static constexpr uint8_t subchunk_count = size / subchunk_size;  // Sub-chunks per side
 
     Tile tiles[size][size];                       // 64x64 tile grid
     BiomeType biome[subchunk_count][subchunk_count]; // Sub-chunk biomes
 
-    // Get biome for a specific sub-chunk position
+    // Methods for biome access
     BiomeType& get_biome(SubChunkPos pos);
     const BiomeType& get_biome(SubChunkPos pos) const;
 };
@@ -79,7 +86,7 @@ struct Tile {
 
 ### TilePos
 
-Position structure for locating tiles within the map.
+Position structure for locating tiles within the map with enhanced coordinate conversion support.
 
 ```cpp
 struct TilePos {
@@ -87,7 +94,14 @@ struct TilePos {
     uint8_t chunk_y;  // Chunk Y coordinate
     uint8_t local_x;  // Tile X within chunk (0-63)
     uint8_t local_y;  // Tile Y within chunk (0-63)
+
+    // Coordinate conversion methods
+    std::pair<std::uint16_t, std::uint16_t> to_global() const;
+    static TilePos from_global(std::uint16_t global_x, std::uint16_t global_y);
 };
+
+// Three-way comparison operator for ordering
+std::strong_ordering operator<=>(const TilePos& lhs, const TilePos& rhs);
 ```
 
 ### SubChunkPos
@@ -134,8 +148,11 @@ struct GenerationConfig {
     int base_octaves = 3;                       // Number of octaves for base terrain noise
     double base_persistence = 0.5;             // Persistence for base terrain noise
 
+    // Mountain smoothing parameters
+    std::uint32_t mountain_remove_threshold = 10; // Remove mountain components smaller than this size
+    
     // Hole filling parameters
-    std::uint32_t fill_threshold = 16;          // Fill holes smaller than this size
+    std::uint32_t fill_threshold = 10;          // Fill holes smaller than this size
 };
 ```
 
@@ -148,10 +165,11 @@ struct GenerationConfig {
 - `humidity_scale`: Controls the scale/frequency of humidity variation across the map
 - `humidity_octaves`: Number of noise octaves for humidity
 - `humidity_persistence`: How much each octave contributes to humidity noise (0.0-1.0)
-- `base_scale`: Controls the scale/frequency of base terrain height variation
+- `base_scale`: Controls the scale/frequency of base terrain variation across the map
 - `base_octaves`: Number of noise octaves for base terrain
 - `base_persistence`: How much each octave contributes to base terrain noise (0.0-1.0)
-- `fill_threshold`: Maximum size of connected components to fill with mountains (hole filling)
+- `mountain_remove_threshold`: Maximum size of mountain components to remove for terrain smoothing
+- `fill_threshold`: Maximum size of holes to fill with mountains
 
 ### Generation Passes
 
@@ -241,6 +259,33 @@ private:
 - **Mountain-as-Impassable**: Treats mountains as impassable terrain for connectivity
 - **Hole Filling**: Converts small isolated areas to mountains for cleaner terrain
 
+#### SmoothenMountainsPass
+
+Removes small mountain components to create smoother terrain using BFS and replacement strategies.
+
+```cpp
+class SmoothenMountainsPass {
+public:
+    SmoothenMountainsPass(const GenerationConfig& config, Xoroshiro128PP rng);
+    void operator()(TileMap& tilemap);
+
+private:
+    std::uint32_t bfs_component_size(
+        TileMap& tilemap, TilePos start_pos,
+        std::vector<std::vector<bool>>& visited,
+        std::vector<TilePos>& positions
+    );
+    void demountainize(TileMap& tilemap, const std::vector<TilePos>& positions);
+};
+```
+
+**Key Features:**
+- **Mountain Component Detection**: Uses BFS to find connected mountain regions
+- **Size-based Removal**: Removes mountain components smaller than `mountain_remove_threshold`
+- **Boundary Preservation**: Preserves mountain components that touch the map boundary
+- **Intelligent Replacement**: Replaces mountains with terrain types based on neighboring tiles
+- **Smooth Terrain**: Creates more natural-looking terrain without isolated mountain clusters
+
 ### TerrainGenerator
 
 Main orchestrator class that manages the generation process using multiple passes.
@@ -254,9 +299,22 @@ public:
 private:
     void biome_pass(TileMap& tilemap);
     void base_tile_type_pass(TileMap& tilemap);
+    void smoothen_mountains_pass(TileMap& tilemap);
     void hole_fill_pass(TileMap& tilemap);
 };
 ```
+
+**Generation Order:**
+1. **Biome Pass**: Generates climate-based biome data for sub-chunks
+2. **Base Tile Type Pass**: Generates base terrain types based on biomes
+3. **Smoothen Mountains Pass**: Removes small mountain components for smoother terrain
+4. **Hole Fill Pass**: Fills small holes in the terrain
+
+**Key Features:**
+- **Multi-pass Architecture**: Separates generation concerns for better control
+- **RNG Management**: Uses independent RNGs for each pass with proper seeding
+- **Deterministic Results**: Same seed produces identical terrain across runs
+- **Configurable**: All passes use parameters from GenerationConfig
 
 **Generation Flow:**
 1. **Biome Pass**: Generate climate data and assign biomes to sub-chunks
@@ -320,6 +378,24 @@ public:
 - **STL Compatible**: Implements standard random engine interface
 
 ## Noise System
+
+### DiscreteRandomNoise
+
+Discrete random noise generator using Xoroshiro128++ for terrain replacement operations.
+
+```cpp
+class DiscreteRandomNoise {
+public:
+    explicit DiscreteRandomNoise(Xoroshiro128PP rng);
+    std::uint64_t noise(std::uint32_t x, std::uint32_t y, std::uint32_t z = 0) const;
+};
+```
+
+**Key Features:**
+- **Discrete Output**: Produces integer values for discrete selections
+- **High Quality**: Based on Xoroshiro128++ random number generation
+- **3D Support**: Supports optional Z coordinate for 3D noise
+- **Fast**: Optimized for performance in terrain processing
 
 ### PerlinNoise
 
@@ -428,8 +504,11 @@ config.base_scale = 0.08;
 config.base_octaves = 3;
 config.base_persistence = 0.5;
 
+// Mountain smoothing settings
+config.mountain_remove_threshold = 10;  // Remove mountain components smaller than 10 tiles
+
 // Hole filling settings
-config.fill_threshold = 16;  // Fill holes smaller than 16 tiles
+config.fill_threshold = 10;  // Fill holes smaller than 10 tiles
 
 // Generate terrain
 istd::map_generate(tilemap, config);
@@ -582,6 +661,15 @@ The new pass-based system provides:
 3. **Reproducible Results**: Same seed produces identical results across passes
 4. **Extensibility**: Easy to add new passes or modify existing ones
 5. **Performance**: Efficient memory access patterns and reduced redundant calculations
+6. **Terrain Quality**: SmoothenMountainsPass creates more natural-looking terrain
+
+### Recent Improvements
+
+**Mountain Smoothing**: The new `SmoothenMountainsPass` removes small isolated mountain components to create more natural terrain formations. Small mountain clusters that don't connect to the boundary are replaced with terrain types based on their neighboring areas.
+
+**Enhanced TileMap**: Added utility methods for boundary detection and neighbor finding, supporting both Manhattan and Chebyshev distance calculations.
+
+**Improved Noise**: Added `DiscreteRandomNoise` for high-quality discrete value generation used in terrain replacement operations.
 
 ## Thread Safety
 

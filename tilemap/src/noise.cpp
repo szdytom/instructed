@@ -7,6 +7,42 @@
 
 namespace istd {
 
+DiscreteRandomNoise::DiscreteRandomNoise(Xoroshiro128PP rng) {
+	mask = rng.next();
+	std::iota(permutation_.begin(), permutation_.end(), 0);
+	std::shuffle(permutation_.begin(), permutation_.end(), rng);
+}
+
+std::uint8_t DiscreteRandomNoise::perm(int x) const {
+	// Map x to [0, 255] range
+	x &= 0xFF;
+	return permutation_[x];
+}
+
+std::uint32_t DiscreteRandomNoise::map(std::uint32_t x) const {
+	std::uint8_t a = x & 0xFF;
+	std::uint8_t b = (x >> 8) & 0xFF;
+	std::uint8_t c = (x >> 16) & 0xFF;
+	std::uint8_t d = (x >> 24) & 0xFF;
+	a = perm(a);
+	b = perm(b ^ a);
+	c = perm(c ^ b);
+	d = perm(d ^ c);
+	return (d << 24U) | (c << 16U) | (b << 8U) | a;
+}
+
+std::uint64_t DiscreteRandomNoise::noise(
+	std::uint32_t x, std::uint32_t y, std::uint32_t z
+) const {
+	auto A = map(x);
+	auto B = map(y ^ A);
+	auto C = map(z ^ B);
+	auto D = map(z);
+	auto E = map(y ^ D);
+	auto F = map(x ^ E);
+	return ((static_cast<std::uint64_t>(C) << 32) | F) ^ mask;
+}
+
 PerlinNoise::PerlinNoise(Xoroshiro128PP rng) {
 	// Initialize permutation array with values 0-255
 	permutation_.resize(256);

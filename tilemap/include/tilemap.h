@@ -47,6 +47,24 @@ public:
 	 * @param tile The tile to set
 	 */
 	void set_tile(TilePos pos, const Tile &tile);
+
+	/**
+	 * @brief Check if a position is at the map boundary
+	 * @param pos The position to check
+	 * @return True if the position is at the boundary
+	 */
+	bool is_at_boundary(TilePos pos) const;
+
+	/**
+	 * @brief Get all valid neighbors of a position
+	 * @param pos The position to get neighbors for
+	 * @param chebyshev If true, use Chebyshev distance (8-connected), otherwise
+	 * Manhattan distance (4-connected)
+	 * @return Vector of valid neighbor positions
+	 */
+	std::vector<TilePos> get_neighbors(
+		TilePos pos, bool chebyshev = false
+	) const;
 };
 
 } // namespace istd
