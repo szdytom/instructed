@@ -28,34 +28,62 @@ struct GenerationConfig {
 	double base_persistence = 0.5; // Persistence for base terrain noise
 };
 
-// Terrain generator class that manages the generation process
-class TerrainGenerator {
+class BiomeGenerationPass {
 private:
-	GenerationConfig config_;
+	const GenerationConfig &config_;
 
-	UniformPerlinNoise base_noise_;        // For base terrain
-	UniformPerlinNoise temperature_noise_; // For temperature
-	UniformPerlinNoise humidity_noise_;    // For humidity
+	UniformPerlinNoise temperature_noise_;
+	UniformPerlinNoise humidity_noise_;
 
 public:
 	/**
-	 * @brief Construct a terrain generator with the given configuration
-	 * @param config Generation configuration
+	 * @brief Construct a biome generation pass
+	 * @param config Generation configuration parameters
+	 * @param r1 Random number generator for temperature noise
+	 * @param r2 Random number generator for humidity noise
 	 */
-	explicit TerrainGenerator(const GenerationConfig &config);
+	BiomeGenerationPass(
+		const GenerationConfig &config, Xoroshiro128PP r1, Xoroshiro128PP r2
+	);
 
 	/**
-	 * @brief Generate terrain for the entire tilemap
-	 * @param tilemap The tilemap to generate into
+	 * @brief Generate biomes for the entire tilemap
+	 * @param tilemap The tilemap to generate biomes into
 	 */
-	void generate_map(TileMap &tilemap);
+	void operator()(TileMap &tilemap);
 
 private:
 	/**
-	 * @brief Generate biome data for all chunks
-	 * @param tilemap The tilemap to generate biomes into
+	 * @brief Get climate values at a global position
+	 * @param global_x Global X coordinate
+	 * @param global_y Global Y coordinate
+	 * @return Pair of (temperature, humidity) in range [0,1]
 	 */
-	void generate_biomes(TileMap &tilemap);
+	std::pair<double, double> get_climate(
+		double global_x, double global_y
+	) const;
+};
+
+class BaseTileTypeGenerationPass {
+private:
+	const GenerationConfig &config_;
+	UniformPerlinNoise base_noise_;
+
+public:
+	/**
+	 * @brief Construct a base tile type generation pass
+	 * @param config Generation configuration parameters
+	 * @param rng Random number generator for base terrain noise
+	 */
+	BaseTileTypeGenerationPass(
+		const GenerationConfig &config, Xoroshiro128PP rng
+	);
+
+	/**
+	 * @brief Generate base tile types for the entire tilemap
+	 * @param tilemap The tilemap to generate base types into
+	 */
+	void operator()(TileMap &tilemap);
 
 	/**
 	 * @brief Generate terrain for a single chunk
@@ -81,16 +109,6 @@ private:
 	);
 
 	/**
-	 * @brief Get climate values at a global position
-	 * @param global_x Global X coordinate
-	 * @param global_y Global Y coordinate
-	 * @return Pair of (temperature, humidity) in range [0,1]
-	 */
-	std::pair<double, double> get_climate(
-		double global_x, double global_y
-	) const;
-
-	/**
 	 * @brief Determine base terrain type based on noise value and biome
 	 * properties
 	 * @param noise_value Base terrain noise value [0,1]
@@ -100,6 +118,39 @@ private:
 	BaseTileType determine_base_type(
 		double noise_value, const BiomeProperties &properties
 	) const;
+};
+
+// Terrain generator class that manages the generation process
+class TerrainGenerator {
+private:
+	GenerationConfig config_;
+	Xoroshiro128PP master_rng_;
+
+public:
+	/**
+	 * @brief Construct a terrain generator with the given configuration
+	 * @param config Generation configuration
+	 */
+	explicit TerrainGenerator(const GenerationConfig &config);
+
+	/**
+	 * @brief Generate terrain for the entire tilemap
+	 * @param tilemap The tilemap to generate into
+	 */
+	void operator()(TileMap &tilemap);
+
+private:
+	/**
+	 * @brief Generate biome data for all chunks
+	 * @param tilemap The tilemap to generate biomes into
+	 */
+	void biome_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Generate base tile types for all chunks
+	 * @param tilemap The tilemap to generate base types into
+	 */
+	void base_tile_type_pass(TileMap &tilemap);
 };
 
 /**

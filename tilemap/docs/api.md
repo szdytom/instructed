@@ -7,7 +7,8 @@ The tilemap library provides a flexible system for generating and managing tile-
 - **TileMap**: The main map container holding chunks of tiles
 - **Chunk**: 64x64 tile containers with biome information
 - **Tile**: Individual map tiles with base and surface types
-- **TerrainGenerator**: Procedural terrain generation system
+- **TerrainGenerator**: Pass-based procedural terrain generation system
+- **Generation Passes**: Modular generation components (biome, base terrain)
 - **Biome System**: Climate-based terrain variation
 
 ## Core Classes
@@ -41,7 +42,7 @@ Each chunk contains 64×64 tiles and sub-chunk biome information.
 ```cpp
 struct Chunk {
     static constexpr uint8_t size = 64;           // Tiles per side
-    static constexpr uint8_t subchunk_size = 4;   // Tiles per sub-chunk side
+    static constexpr uint8_t subchunk_size = /*default value*/;   // Tiles per sub-chunk side
     static constexpr uint8_t subchunk_count = size / subchunk_size;  // Sub-chunks per side
 
     Tile tiles[size][size];                       // 64x64 tile grid
@@ -108,6 +109,8 @@ std::pair<std::uint8_t, std::uint8_t> subchunk_to_tile_start(
 
 ## Terrain Generation
 
+The terrain generation system has been refactored into a modular pass-based architecture, providing better separation of concerns and more flexible generation control.
+
 ### GenerationConfig
 
 Configuration parameters for terrain generation.
@@ -117,19 +120,19 @@ struct GenerationConfig {
     Seed seed;                                    // 128-bit seed for random generation
 
     // Temperature noise parameters
-    double temperature_scale = 0.005;             // Scale for temperature noise
-    int temperature_octaves = 3;                  // Number of octaves for temperature noise
-    double temperature_persistence = 0.4;        // Persistence for temperature noise
+    double temperature_scale = /*default value*/;             // Scale for temperature noise
+    int temperature_octaves = /*default value*/;                 // Number of octaves for temperature noise
+    double temperature_persistence = /*default value*/;       // Persistence for temperature noise
 
     // Humidity noise parameters
-    double humidity_scale = 0.005;               // Scale for humidity noise
-    int humidity_octaves = 3;                    // Number of octaves for humidity noise
-    double humidity_persistence = 0.4;          // Persistence for humidity noise
+    double humidity_scale = /*default value*/;               // Scale for humidity noise
+    int humidity_octaves = /*default value*/;                   // Number of octaves for humidity noise
+    double humidity_persistence = /*default value*/;         // Persistence for humidity noise
 
     // Base terrain noise parameters
-    double base_scale = 0.08;                    // Scale for base terrain noise
-    int base_octaves = 3;                        // Number of octaves for base terrain noise
-    double base_persistence = 0.5;              // Persistence for base terrain noise
+    double base_scale = /*default value*/;                   // Scale for base terrain noise
+    int base_octaves = /*default value*/;                       // Number of octaves for base terrain noise
+    double base_persistence = /*default value*/;             // Persistence for base terrain noise
 };
 ```
 
@@ -146,21 +149,88 @@ struct GenerationConfig {
 - `base_octaves`: Number of noise octaves for base terrain
 - `base_persistence`: How much each octave contributes to base terrain noise (0.0-1.0)
 
+### Generation Passes
+
+The generation system is organized into distinct passes, each responsible for a specific aspect of terrain generation.
+
+#### BiomeGenerationPass
+
+Generates biome data for all sub-chunks based on temperature and humidity noise.
+
+```cpp
+class BiomeGenerationPass {
+public:
+    BiomeGenerationPass(
+        const GenerationConfig& config, 
+        Xoroshiro128PP r1, 
+        Xoroshiro128PP r2
+    );
+    
+    void operator()(TileMap& tilemap);
+
+private:
+    std::pair<double, double> get_climate(double global_x, double global_y) const;
+};
+```
+
+**Key Features:**
+- **Climate Generation**: Uses separate noise generators for temperature and humidity
+- **Sub-chunk Resolution**: Assigns biomes to 16×16 sub-chunks for efficient generation
+- **Climate Mapping**: Maps noise values to temperature/humidity ranges
+- **Biome Determination**: Uses climate values to determine appropriate biomes
+
+#### BaseTileTypeGenerationPass
+
+Generates base terrain types for all tiles based on their sub-chunk biomes.
+
+```cpp
+class BaseTileTypeGenerationPass {
+public:
+    BaseTileTypeGenerationPass(const GenerationConfig& config, Xoroshiro128PP rng);
+    
+    void operator()(TileMap& tilemap);
+    void generate_chunk(TileMap& tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y);
+    void generate_subchunk(
+        TileMap& tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y,
+        SubChunkPos sub_pos, BiomeType biome
+    );
+
+private:
+    BaseTileType determine_base_type(
+        double noise_value, const BiomeProperties& properties
+    ) const;
+};
+```
+
+**Key Features:**
+- **Biome-aware Generation**: Uses biome properties to control terrain type ratios
+- **Hierarchical Processing**: Processes chunks, then sub-chunks, then individual tiles
+- **Noise-based Distribution**: Uses calibrated noise for balanced terrain distribution
+- **Tile-level Detail**: Generates terrain at individual tile resolution
+
 ### TerrainGenerator
 
-Main class for procedural terrain generation.
+Main orchestrator class that manages the generation process using multiple passes.
 
 ```cpp
 class TerrainGenerator {
 public:
     explicit TerrainGenerator(const GenerationConfig& config);
-    void generate_map(TileMap& tilemap);
+    void operator()(TileMap& tilemap);
+
+private:
+    void biome_pass(TileMap& tilemap);
+    void base_tile_type_pass(TileMap& tilemap);
 };
 ```
 
+**Generation Flow:**
+1. **Biome Pass**: Generate climate data and assign biomes to sub-chunks
+2. **Base Tile Type Pass**: Generate base terrain types based on biomes and noise
+
 ### Generation Function
 
-Convenience function for map generation.
+Convenience function for complete map generation.
 
 ```cpp
 void map_generate(TileMap& tilemap, const GenerationConfig& config);
@@ -309,12 +379,12 @@ istd::GenerationConfig config;
 config.seed = istd::Seed::from_string("hello_world");  // 128-bit seed from string
 
 // Temperature noise settings
-config.temperature_scale = 0.005;
+config.temperature_scale = 0.05;
 config.temperature_octaves = 3;
 config.temperature_persistence = 0.4;
 
 // Humidity noise settings
-config.humidity_scale = 0.005;
+config.humidity_scale = 0.05;
 config.humidity_octaves = 3;
 config.humidity_persistence = 0.4;
 
@@ -327,12 +397,42 @@ config.base_persistence = 0.5;
 istd::map_generate(tilemap, config);
 
 // Access tiles
-for (int chunk_y = 0; chunk_y < Chunk::subchunk_count; ++chunk_y) {
-    for (int chunk_x = 0; chunk_x < Chunk::subchunk_count; ++chunk_x) {
+for (int chunk_y = 0; chunk_y < tilemap.get_size(); ++chunk_y) {
+    for (int chunk_x = 0; chunk_x < tilemap.get_size(); ++chunk_x) {
         const auto& chunk = tilemap.get_chunk(chunk_x, chunk_y);
         // Process chunk tiles...
     }
 }
+```
+
+### Advanced Generation with Custom Passes
+
+```cpp
+#include "tilemap.h"
+#include "generation.h"
+
+// Create map and config
+istd::TileMap tilemap(2);
+istd::GenerationConfig config;
+config.seed = istd::Seed::from_string("custom_world");
+
+// Use TerrainGenerator for step-by-step control
+istd::TerrainGenerator generator(config);
+
+// Generate terrain (runs both biome and base tile passes)
+generator(tilemap);
+
+// Access biome data
+const auto& chunk = tilemap.get_chunk(0, 0);
+for (int sub_y = 0; sub_y < istd::Chunk::subchunk_count; ++sub_y) {
+    for (int sub_x = 0; sub_x < istd::Chunk::subchunk_count; ++sub_x) {
+        istd::SubChunkPos pos(sub_x, sub_y);
+        istd::BiomeType biome = chunk.get_biome(pos);
+        const auto& props = istd::get_biome_properties(biome);
+        // Process biome...
+    }
+}
+```
 ```
 
 ### Seed Usage Examples
@@ -427,9 +527,23 @@ istd::Seed seed = istd::Seed::from_string("consistent_world");
 istd::GenerationConfig config;
 config.seed = seed;
 
-TerrainGenerator generator(config);
-generator.generate_map(tilemap);  // Uses calibrated uniform noise with Xoroshiro128++
+// TerrainGenerator handles pass coordination and RNG management
+istd::TerrainGenerator generator(config);
+generator(tilemap);  // Uses calibrated uniform noise with Xoroshiro128++
+
+// Or use the convenience function
+istd::map_generate(tilemap, config);
 ```
+
+### Pass-based Architecture Benefits
+
+The new pass-based system provides:
+
+1. **Separation of Concerns**: Each pass handles a specific aspect of generation
+2. **RNG Independence**: Each pass uses independent random number generators
+3. **Reproducible Results**: Same seed produces identical results across passes
+4. **Extensibility**: Easy to add new passes or modify existing ones
+5. **Performance**: Efficient memory access patterns and reduced redundant calculations
 
 ## Thread Safety
 

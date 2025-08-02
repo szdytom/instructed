@@ -6,44 +6,21 @@
 
 namespace istd {
 
-TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
-	: config_(config) {
-	Xoroshiro128PP rng{config.seed};
-	base_noise_ = UniformPerlinNoise(rng);
-	rng = rng.jump_96();
-	temperature_noise_ = UniformPerlinNoise(rng);
-	rng = rng.jump_96();
-	humidity_noise_ = UniformPerlinNoise(rng);
-
-	base_noise_.calibrate(
-		config.base_scale, config.base_octaves, config.base_persistence
-	);
-
+BiomeGenerationPass::BiomeGenerationPass(
+	const GenerationConfig &config, Xoroshiro128PP r1, Xoroshiro128PP r2
+)
+	: config_(config), temperature_noise_(r1), humidity_noise_(r2) {
 	temperature_noise_.calibrate(
 		config.temperature_scale, config.temperature_octaves,
 		config.temperature_persistence
 	);
-
 	humidity_noise_.calibrate(
 		config.humidity_scale, config.humidity_octaves,
 		config.humidity_persistence
 	);
 }
 
-void TerrainGenerator::generate_map(TileMap &tilemap) {
-	// First, generate biome data for all chunks
-	generate_biomes(tilemap);
-
-	// Then generate terrain for each chunk
-	std::uint8_t map_size = tilemap.get_size();
-	for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
-		for (std::uint8_t chunk_y = 0; chunk_y < map_size; ++chunk_y) {
-			generate_chunk(tilemap, chunk_x, chunk_y);
-		}
-	}
-}
-
-void TerrainGenerator::generate_biomes(TileMap &tilemap) {
+void BiomeGenerationPass::operator()(TileMap &tilemap) {
 	std::uint8_t map_size = tilemap.get_size();
 
 	// Generate biomes for each sub-chunk
@@ -77,7 +54,43 @@ void TerrainGenerator::generate_biomes(TileMap &tilemap) {
 	}
 }
 
-void TerrainGenerator::generate_chunk(
+std::pair<double, double> BiomeGenerationPass::get_climate(
+	double global_x, double global_y
+) const {
+	// Generate temperature noise (0-1 range)
+	double temperature = temperature_noise_.uniform_noise(
+		global_x * config_.temperature_scale,
+		global_y * config_.temperature_scale
+	);
+
+	// Generate humidity noise (0-1 range)
+	double humidity = humidity_noise_.uniform_noise(
+		global_x * config_.humidity_scale, global_y * config_.humidity_scale
+	);
+
+	return {temperature, humidity};
+}
+
+BaseTileTypeGenerationPass::BaseTileTypeGenerationPass(
+	const GenerationConfig &config, Xoroshiro128PP rng
+)
+	: config_(config), base_noise_(rng) {
+	base_noise_.calibrate(
+		config.base_scale, config.base_octaves, config.base_persistence
+	);
+}
+
+void BaseTileTypeGenerationPass::operator()(TileMap &tilemap) {
+	// Generate base tile types for each chunk
+	std::uint8_t map_size = tilemap.get_size();
+	for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
+		for (std::uint8_t chunk_y = 0; chunk_y < map_size; ++chunk_y) {
+			generate_chunk(tilemap, chunk_x, chunk_y);
+		}
+	}
+}
+
+void BaseTileTypeGenerationPass::generate_chunk(
 	TileMap &tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y
 ) {
 	const Chunk &chunk = tilemap.get_chunk(chunk_x, chunk_y);
@@ -92,7 +105,7 @@ void TerrainGenerator::generate_chunk(
 	}
 }
 
-void TerrainGenerator::generate_subchunk(
+void BaseTileTypeGenerationPass::generate_subchunk(
 	TileMap &tilemap, std::uint8_t chunk_x, std::uint8_t chunk_y,
 	SubChunkPos sub_pos, BiomeType biome
 ) {
@@ -130,24 +143,7 @@ void TerrainGenerator::generate_subchunk(
 	}
 }
 
-std::pair<double, double> TerrainGenerator::get_climate(
-	double global_x, double global_y
-) const {
-	// Generate temperature noise (0-1 range)
-	double temperature = temperature_noise_.uniform_noise(
-		global_x * config_.temperature_scale,
-		global_y * config_.temperature_scale
-	);
-
-	// Generate humidity noise (0-1 range)
-	double humidity = humidity_noise_.uniform_noise(
-		global_x * config_.humidity_scale, global_y * config_.humidity_scale
-	);
-
-	return {temperature, humidity};
-}
-
-BaseTileType TerrainGenerator::determine_base_type(
+BaseTileType BaseTileTypeGenerationPass::determine_base_type(
 	double noise_value, const BiomeProperties &properties
 ) const {
 	const std::pair<BaseTileType, double> ratios[] = {
@@ -168,10 +164,37 @@ BaseTileType TerrainGenerator::determine_base_type(
 	std::unreachable();
 }
 
-// Legacy function for backward compatibility
+TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
+	: config_(config), master_rng_(config.seed) {}
+
+void TerrainGenerator::biome_pass(TileMap &tilemap) {
+	// Create two RNGs for temperature and humidity noise
+	Xoroshiro128PP temp_rng = master_rng_;
+	master_rng_ = master_rng_.jump_96();
+	Xoroshiro128PP humidity_rng = master_rng_;
+	master_rng_ = master_rng_.jump_96();
+
+	BiomeGenerationPass biome_pass(config_, temp_rng, humidity_rng);
+	biome_pass(tilemap);
+}
+
+void TerrainGenerator::operator()(TileMap &tilemap) {
+	// First, generate biome data for all chunks
+	biome_pass(tilemap);
+
+	// Then, generate base tile types based on biomes
+	base_tile_type_pass(tilemap);
+}
+
+void TerrainGenerator::base_tile_type_pass(TileMap &tilemap) {
+	BaseTileTypeGenerationPass pass(config_, master_rng_);
+	master_rng_ = master_rng_.jump_96();
+	pass(tilemap);
+}
+
 void map_generate(TileMap &tilemap, const GenerationConfig &config) {
 	TerrainGenerator generator(config);
-	generator.generate_map(tilemap);
+	generator(tilemap);
 }
 
 } // namespace istd
