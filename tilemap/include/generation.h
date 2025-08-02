@@ -131,7 +131,7 @@ public:
 	) const;
 };
 
-class HoleFillPass {
+class MountainHoleFillPass {
 private:
 	const GenerationConfig &config_;
 
@@ -140,7 +140,7 @@ public:
 	 * @brief Construct a hole fill pass
 	 * @param config Generation configuration parameters
 	 */
-	explicit HoleFillPass(const GenerationConfig &config);
+	explicit MountainHoleFillPass(const GenerationConfig &config);
 
 	/**
 	 * @brief Fill small holes in the terrain using BFS
@@ -264,7 +264,7 @@ private:
 	 * @brief Fill small holes in the terrain
 	 * @param tilemap The tilemap to process
 	 */
-	void hole_fill_pass(TileMap &tilemap);
+	void mountain_hole_fill_pass(TileMap &tilemap);
 
 	/**
 	 * @brief Generate deepwater tiles in ocean biomes

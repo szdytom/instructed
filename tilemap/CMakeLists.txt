@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.27)
 
 # Define the tilemap library source files
 set(ISTD_TILEMAP_SRC
+	src/pass/base_tile_type.cpp
+	src/pass/biome.cpp
+	src/pass/deepwater.cpp
+	src/pass/mountain_hole_fill.cpp
+	src/pass/smoothen_mountain.cpp
 	src/generation.cpp
 	src/tilemap.cpp
 	src/noise.cpp
