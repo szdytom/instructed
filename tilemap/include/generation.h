@@ -33,8 +33,7 @@ class TerrainGenerator {
 private:
 	GenerationConfig config_;
 
-	UniformPerlinNoise
-		base_noise_; // For base terrain generation (uniform distribution)
+	UniformPerlinNoise base_noise_;        // For base terrain
 	UniformPerlinNoise temperature_noise_; // For temperature
 	UniformPerlinNoise humidity_noise_;    // For humidity
 

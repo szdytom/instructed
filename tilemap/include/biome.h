@@ -36,6 +36,11 @@ struct BiomeProperties {
 	// Biome name for debugging
 	std::string_view name;
 
+	// Categories
+	BiomeTemperature temperature;
+	BiomeHumidity humidity;
+	bool is_ocean;
+
 	// Base terrain ratios (0.0 - 1.0)
 	double water_ratio;
 	double ice_ratio;

@@ -11,6 +11,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Snowy Peeks (Cold & Dry)
 	{
      .name = "Snowy Peeks",
+     .temperature = BiomeTemperature::Cold,
+     .humidity = BiomeHumidity::Dry,
+     .is_ocean = false,
      .water_ratio = .05,
      .ice_ratio = .2,
      .sand_ratio = .05,
@@ -19,6 +22,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Snowy Plains (Cold & Moderate)
 	{
      .name = "Snowy Plains",
+     .temperature = BiomeTemperature::Cold,
+     .humidity = BiomeHumidity::Moderate,
+     .is_ocean = false,
      .water_ratio = .05,
      .ice_ratio = .25,
      .sand_ratio = .1,
@@ -27,6 +33,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Frozen Ocean (Cold & Wet)
 	{
      .name = "Frozen Ocean",
+     .temperature = BiomeTemperature::Cold,
+     .humidity = BiomeHumidity::Wet,
+     .is_ocean = true,
      .water_ratio = .1,
      .ice_ratio = .7,
      .sand_ratio = .25,
@@ -35,6 +44,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Plains (Temperate & Dry)
 	{
      .name = "Plains",
+     .temperature = BiomeTemperature::Temperate,
+     .humidity = BiomeHumidity::Dry,
+     .is_ocean = false,
      .water_ratio = .05,
      .ice_ratio = .0,
      .sand_ratio = .05,
@@ -43,6 +55,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Forest (Temperate & Moderate)
 	{
      .name = "Forest",
+     .temperature = BiomeTemperature::Temperate,
+     .humidity = BiomeHumidity::Moderate,
+     .is_ocean = false,
      .water_ratio = .1,
      .ice_ratio = .0,
      .sand_ratio = .05,
@@ -51,6 +66,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Ocean (Temperate & Wet)
 	{
      .name = "Ocean",
+     .temperature = BiomeTemperature::Temperate,
+     .humidity = BiomeHumidity::Wet,
+     .is_ocean = true,
      .water_ratio = .8,
      .ice_ratio = .0,
      .sand_ratio = .15,
@@ -59,6 +77,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Desert (Hot & Dry)
 	{
      .name = "Desert",
+     .temperature = BiomeTemperature::Hot,
+     .humidity = BiomeHumidity::Dry,
+     .is_ocean = false,
      .water_ratio = .0,
      .ice_ratio = .0,
      .sand_ratio = .8,
@@ -67,6 +88,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Savanna (Hot & Moderate)
 	{
      .name = "Savanna",
+     .temperature = BiomeTemperature::Hot,
+     .humidity = BiomeHumidity::Moderate,
+     .is_ocean = false,
      .water_ratio = .2,
      .ice_ratio = .0,
      .sand_ratio = .1,
@@ -75,6 +99,9 @@ constexpr BiomeProperties biome_properties[] = {
 	// Luke Ocean (Hot & Wet)
 	{
      .name = "Luke Ocean",
+     .temperature = BiomeTemperature::Hot,
+     .humidity = BiomeHumidity::Wet,
+     .is_ocean = true,
      .water_ratio = .8,
      .ice_ratio = .0,
      .sand_ratio = .05,
