@@ -1,4 +1,5 @@
 #include "bmp.h"
+#include "tilemap/biome.h"
 #include "tilemap/generation.h"
 #include "tilemap/tile.h"
 #include "tilemap/tilemap.h"
@@ -45,41 +46,63 @@ BmpColors::Color get_tile_color(const istd::Tile &tile) {
 	}
 }
 
-// Generate BMP file from tilemap
+// Draw a single chunk at the specified pixel offset, with border consideration
+void draw_chunk(
+	const istd::TileMap &tilemap, BmpWriter &bmp, int chunk_x, int chunk_y,
+	int tile_size, int border_width
+) {
+	const int tiles_per_chunk = istd::Chunk::size;
+	int chunk_pixel_x = chunk_x * (tiles_per_chunk * tile_size + border_width);
+	int chunk_pixel_y = chunk_y * (tiles_per_chunk * tile_size + border_width);
+	for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
+		for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
+			istd::TilePos pos(chunk_x, chunk_y, tile_x, tile_y);
+			const auto &tile = tilemap.get_tile(pos);
+			auto color = get_tile_color(tile);
+			int global_x = chunk_pixel_x + tile_x * tile_size;
+			int global_y = chunk_pixel_y + tile_y * tile_size;
+			// Draw a tile_size x tile_size block
+			for (int dy = 0; dy < tile_size; ++dy) {
+				for (int dx = 0; dx < tile_size; ++dx) {
+					bmp.set_pixel(
+						global_x + dx, global_y + dy, color.r, color.g, color.b
+					);
+				}
+			}
+		}
+	}
+}
+
 void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
-	const int total_tiles = chunks_per_side * tiles_per_chunk;
-	const int tile_size = 2; // Size of each tile in pixels
-	const int image_size = total_tiles * tile_size;
-
+	const int tile_size = 2;    // Size of each tile in pixels
+	const int border_width = 1; // Border width in pixels
+	// Total image size includes borders between chunks
+	const int image_size = chunks_per_side * tiles_per_chunk * tile_size
+		+ (chunks_per_side - 1) * border_width;
 	BmpWriter bmp(image_size, image_size);
 
-	// Generate tiles
+	// Draw all chunks
 	for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
 		for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
-			for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
-				for (int tile_x = 0; tile_x < tiles_per_chunk; ++tile_x) {
-					istd::TilePos pos(chunk_x, chunk_y, tile_x, tile_y);
-					const auto &tile = tilemap.get_tile(pos);
-
-					int global_x = chunk_x * tiles_per_chunk + tile_x;
-					int global_y = chunk_y * tiles_per_chunk + tile_y;
-
-					auto color = get_tile_color(tile);
-
-					// Draw a tile_size x tile_size block
-					for (int dy = 0; dy < tile_size; ++dy) {
-						for (int dx = 0; dx < tile_size; ++dx) {
-							int pixel_x = global_x * tile_size + dx;
-							int pixel_y = global_y * tile_size + dy;
-							bmp.set_pixel(
-								pixel_x, pixel_y, color.r, color.g, color.b
-							);
-						}
-					}
-				}
-			}
+			draw_chunk(tilemap, bmp, chunk_x, chunk_y, tile_size, border_width);
+		}
+	}
+	// Draw vertical borders
+	for (int chunk_x = 1; chunk_x < chunks_per_side; ++chunk_x) {
+		int x = chunk_x * tiles_per_chunk * tile_size
+			+ (chunk_x - 1) * border_width;
+		for (int y = 0; y < image_size; ++y) {
+			bmp.set_pixel(x, y, 0, 0, 0); // Black border
+		}
+	}
+	// Draw horizontal borders
+	for (int chunk_y = 1; chunk_y < chunks_per_side; ++chunk_y) {
+		int y = chunk_y * tiles_per_chunk * tile_size
+			+ (chunk_y - 1) * border_width;
+		for (int x = 0; x < image_size; ++x) {
+			bmp.set_pixel(x, y, 0, 0, 0); // Black border
 		}
 	}
 
@@ -90,23 +113,57 @@ void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 
 	std::println("BMP file generated: {}", filename);
 	std::println("Image size: {}x{} pixels", image_size, image_size);
-	std::println("Tilemap size: {}x{} tiles", total_tiles, total_tiles);
+	std::println(
+		"Tilemap size: {}x{} tiles", chunks_per_side * tiles_per_chunk,
+		chunks_per_side * tiles_per_chunk
+	);
 	std::println("Chunks: {}x{}", chunks_per_side, chunks_per_side);
 }
 
 // Print statistics about the generated map
 void print_statistics(const istd::TileMap &tilemap) {
-	int tile_counts[6] = {
-		0
-	}; // Count for each base tile type (now 6 types including Deepwater)
-	int oil_count = 0;             // Count oil surface tiles
-	int hematite_count = 0;        // Count hematite surface tiles
-	int titanomagnetite_count = 0; // Count titanomagnetite surface tiles
-	int gibbsite_count = 0;        // Count gibbsite surface tiles
-	int coal_count = 0;            // Count coal surface tiles
-	int mountain_edge_count = 0;   // Count mountain edge tiles
+	int tile_counts[6] = {0};
+	int oil_count = 0;
+	int hematite_count = 0;
+	int titanomagnetite_count = 0;
+	int gibbsite_count = 0;
+	int coal_count = 0;
+	int mountain_edge_count = 0;
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
+
+	// Biome statistics
+	constexpr int biome_count = 9; // Number of biome types
+	int biome_stats[biome_count] = {0};
+	int total_subchunks = 0;
+	for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
+		for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
+			const auto &chunk = tilemap.get_chunk(chunk_x, chunk_y);
+			for (int sub_x = 0; sub_x < istd::Chunk::subchunk_count; ++sub_x) {
+				for (int sub_y = 0; sub_y < istd::Chunk::subchunk_count;
+				     ++sub_y) {
+					istd::SubChunkPos sub_pos(sub_x, sub_y);
+					auto biome = chunk.get_biome(sub_pos);
+					biome_stats[static_cast<int>(biome)]++;
+					total_subchunks++;
+				}
+			}
+		}
+	}
+
+	// Print biome statistics
+	std::println("\nBiome Statistics:");
+	std::println("=================");
+	for (int i = 0; i < biome_count; ++i) {
+		double percentage = (double)biome_stats[i] / total_subchunks * 100.0;
+		// Get biome name from properties
+		auto name = istd::get_biome_properties(static_cast<istd::BiomeType>(i))
+						.name;
+		std::println(
+			"{:>15}: {:>8} ({:.1f}%)", name, biome_stats[i], percentage
+		);
+	}
+	std::println("Total sub-chunks: {}", total_subchunks);
 
 	for (int chunk_x = 0; chunk_x < chunks_per_side; ++chunk_x) {
 		for (int chunk_y = 0; chunk_y < chunks_per_side; ++chunk_y) {
