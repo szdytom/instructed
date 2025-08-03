@@ -241,6 +241,7 @@ constexpr Color OIL(0, 0, 0);          // Black
 constexpr Color HEMATITE(255, 0, 0);          // Red
 constexpr Color TITANOMAGNETITE(128, 0, 128); // Purple
 constexpr Color GIBBSITE(255, 255, 0);        // Yellow
+constexpr Color COAL(64, 64, 64);             // Dark gray
 } // namespace BmpColors
 
 #endif // BMP_H

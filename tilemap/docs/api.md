@@ -17,7 +17,7 @@ public:
 
     std::uint8_t get_size() const;
     Chunk& get_chunk(std::uint8_t chunk_x, std::uint8_t chunk_y);
-    
+
     Tile& get_tile(TilePos pos);
     const Tile& get_tile(TilePos pos) const;
     void set_tile(TilePos pos, const Tile& tile);
@@ -31,10 +31,10 @@ public:
 ```cpp
 struct Chunk {
     static constexpr uint8_t size = 64;
-    
+
     Tile tiles[size][size];
     BiomeType biome[16][16];  // Sub-chunk biomes
-    
+
     BiomeType& get_biome(SubChunkPos pos);
 };
 ```
@@ -62,7 +62,7 @@ struct Tile {
 struct TilePos {
     uint8_t chunk_x, chunk_y;  // Chunk coordinates
     uint8_t local_x, local_y;  // Tile within chunk (0-63)
-    
+
     std::pair<std::uint16_t, std::uint16_t> to_global() const;
     static TilePos from_global(std::uint16_t global_x, std::uint16_t global_y);
 };
@@ -81,21 +81,7 @@ Configuration for terrain generation.
 ```cpp
 struct GenerationConfig {
     Seed seed;
-    
-    // Noise parameters
-    double temperature_scale = 0.05;
-    double humidity_scale = 0.05;
-    double base_scale = 0.08;
-    
-    int temperature_octaves = 3;
-    int humidity_octaves = 3;
-    int base_octaves = 3;
-    
-    // Oil generation parameters
-    double oil_density = 0.8;           // Average oil fields per chunk
-    std::uint32_t oil_cluster_min_size = 2; // Minimum tiles per cluster
-    std::uint32_t oil_cluster_max_size = 6; // Maximum tiles per cluster
-    double oil_biome_preference = 2.0;  // Multiplier for preferred biomes
+	// For more options, see generation.h
 };
 ```
 
@@ -110,7 +96,7 @@ void map_generate(TileMap& tilemap, const GenerationConfig& config);
 ```cpp
 struct Seed {
     std::uint64_t s[2];
-    
+
     static Seed from_string(const char* str);
     static Seed device_random();
 };

@@ -19,6 +19,8 @@ BmpColors::Color get_tile_color(const istd::Tile &tile) {
 		return BmpColors::TITANOMAGNETITE;
 	case istd::SurfaceTileType::Gibbsite:
 		return BmpColors::GIBBSITE;
+	case istd::SurfaceTileType::Coal:
+		return BmpColors::COAL;
 	case istd::SurfaceTileType::Empty:
 	default:
 		break; // Fall through to base tile color
@@ -101,6 +103,7 @@ void print_statistics(const istd::TileMap &tilemap) {
 	int hematite_count = 0;        // Count hematite surface tiles
 	int titanomagnetite_count = 0; // Count titanomagnetite surface tiles
 	int gibbsite_count = 0;        // Count gibbsite surface tiles
+	int coal_count = 0;            // Count coal surface tiles
 	int mountain_edge_count = 0;   // Count mountain edge tiles
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
@@ -127,6 +130,9 @@ void print_statistics(const istd::TileMap &tilemap) {
 						break;
 					case istd::SurfaceTileType::Gibbsite:
 						gibbsite_count++;
+						break;
+					case istd::SurfaceTileType::Coal:
+						coal_count++;
 						break;
 					default:
 						break;
@@ -195,6 +201,7 @@ void print_statistics(const istd::TileMap &tilemap) {
 	print_mineral_stats("Hematite", hematite_count);
 	print_mineral_stats("Titanomagnetite", titanomagnetite_count);
 	print_mineral_stats("Gibbsite", gibbsite_count);
+	print_mineral_stats("Coal", coal_count);
 
 	// Mountain edge statistics for mineral context
 	int mountain_count = tile_counts[static_cast<int>(

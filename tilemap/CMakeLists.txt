@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.27)
 set(ISTD_TILEMAP_SRC
 	src/pass/base_tile_type.cpp
 	src/pass/biome.cpp
+	src/pass/coal.cpp
 	src/pass/deepwater.cpp
 	src/pass/mineral_cluster.cpp
 	src/pass/mountain_hole_fill.cpp

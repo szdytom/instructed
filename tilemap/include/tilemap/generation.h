@@ -47,16 +47,24 @@ struct GenerationConfig {
 	                                       // of 255)
 
 	// Mineral cluster generation parameters
-	std::uint16_t hematite_density = 450;        // ~1.8 per chunk (out of 255)
-	std::uint16_t titanomagnetite_density = 300; // ~1.2 per chunk (out of 255)
-	std::uint16_t gibbsite_density = 235;        // ~0.9 per chunk (out of 255)
+	std::uint16_t hematite_density = 450;        // ~1.8 per chunk (n / 255)
+	std::uint16_t titanomagnetite_density = 300; // ~1.2 per chunk (n / 255)
+	std::uint16_t gibbsite_density = 235;        // ~0.9 per chunk (n / 255)
 
 	std::uint8_t mineral_cluster_min_size = 2;   // Minimum tiles per mineral
 	                                             // cluster
 	std::uint8_t mineral_cluster_max_size = 5;   // Maximum tiles per mineral
 	                                             // cluster
-	std::uint8_t mineral_base_probe = 192;       // Base probability for mineral
+	std::uint8_t mineral_base_prob = 192;        // Base probability for mineral
 	                                             // placement
+
+	// Coal generation parameters
+	std::uint8_t coal_seeds_per_chunk = 3;   // Number of initial coal seeds per
+	                                         // chunk
+	std::uint8_t coal_evolution_steps = 6;   // Number of cellular automata
+	                                         // evolution steps
+	std::uint8_t coal_growth_base_prob = 21; // Base probability for coal
+	                                         // growth per neighbor (n / 255)
 };
 
 // Terrain generator class that manages the generation process
@@ -126,6 +134,12 @@ private:
 	 * @param tilemap The tilemap to process
 	 */
 	void mineral_cluster_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Generate coal deposits on suitable terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void coal_pass(TileMap &tilemap);
 };
 /**
  * @brief Generate a tilemap using the new biome-based system

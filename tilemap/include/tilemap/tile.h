@@ -20,6 +20,7 @@ enum class SurfaceTileType : std::uint8_t {
 	Hematite,
 	Titanomagnetite,
 	Gibbsite,
+	Coal,
 
 	// Player built structures
 	// (not used in generation, but can be placed by player)

@@ -87,7 +87,7 @@ std::vector<TilePos> MineralClusterGenerationPass::generate_mineral_centers(
 				mineral_type
 			) // Use mineral type as seed variation
 		);
-		if (sample < config_.mineral_base_probe) {
+		if (sample < config_.mineral_base_prob) {
 			centers.push_back(candidate);
 		}
 	}

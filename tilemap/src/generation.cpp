@@ -13,6 +13,7 @@ void TerrainGenerator::operator()(TileMap &tilemap) {
 	deepwater_pass(tilemap);
 	oil_pass(tilemap);
 	mineral_cluster_pass(tilemap);
+	coal_pass(tilemap);
 }
 
 void map_generate(TileMap &tilemap, const GenerationConfig &config) {
