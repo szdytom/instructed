@@ -27,8 +27,10 @@ tilemap/
 │       ├── biome.cpp           # Climate-based biome generation
 │       ├── base_tile_type.cpp  # Base terrain generation
 │       ├── smoothen_mountain.cpp # Mountain smoothing
+│       ├── smoothen_island.cpp # Island smoothing
 │       ├── mountain_hole_fill.cpp # Hole filling
-│       └── deepwater.cpp       # Deep water placement
+│       ├── deepwater.cpp       # Deep water placement
+│       └── oil.cpp             # Oil resource generation
 ├── examples/         # Usage examples
 └── docs/            # Documentation
 ```
@@ -51,8 +53,10 @@ Terrain generation uses a multi-pass pipeline for modularity and control:
 1. **Biome Pass**: Generates climate data and assigns biomes to sub-chunks
 2. **Base Tile Type Pass**: Creates base terrain based on biomes
 3. **Mountain Smoothing Pass**: Removes isolated mountain clusters
-4. **Hole Fill Pass**: Fills small terrain holes
-5. **Deep Water Pass**: Places deep water areas
+4. **Island Smoothing Pass**: Smooths island coastlines using cellular automata
+5. **Hole Fill Pass**: Fills small terrain holes
+6. **Deep Water Pass**: Places deep water areas
+7. **Oil Pass**: Generates sparse oil deposits as surface features
 
 Each pass operates independently with its own RNG state, ensuring deterministic results.
 
@@ -83,8 +87,17 @@ The library addresses Perlin noise distribution issues:
 
 Several passes use BFS (Breadth-First Search) for terrain analysis:
 - **Mountain Smoothing**: Find and remove small mountain components
+- **Island Smoothing**: Apply cellular automata for natural coastlines
 - **Hole Filling**: Identify and fill isolated terrain holes
 - Components touching map boundaries are preserved
+
+### Oil Resource Generation
+
+The oil generation pass creates sparse resource deposits:
+- **Poisson Disk Sampling**: Ensures minimum distance between oil fields
+- **Biome Preference**: Higher probability in desert and plains biomes
+- **Cluster Growth**: Random walk creates 2-6 tile clusters
+- **Surface Placement**: Oil appears as surface features on land/sand tiles
 
 ## Random Number Generation
 

@@ -5,6 +5,7 @@
 #include "chunk.h"
 #include "noise.h"
 #include "tilemap.h"
+#include "xoroshiro.h"
 #include <cstdint>
 #include <vector>
 
@@ -40,6 +41,14 @@ struct GenerationConfig {
 
 	std::uint32_t fill_threshold = 10;  // Fill holes smaller than this size
 	std::uint32_t deepwater_radius = 2; // Radius for deepwater generation
+
+	// Oil generation parameters
+	std::uint8_t oil_density = 204; // Average oil fields per 255 chunk (~0.8)
+	std::uint8_t oil_cluster_min_size = 1; // Minimum tiles per oil cluster
+	std::uint8_t oil_cluster_max_size = 7; // Maximum tiles per oil cluster
+	                                       // (should be <= 24)
+	std::uint8_t oil_base_probe = 128;     // Biome preference multiplier (out
+	                                       // of 255)
 };
 
 class BiomeGenerationPass {
@@ -351,6 +360,12 @@ private:
 	 * @param tilemap The tilemap to process
 	 */
 	void deepwater_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Generate oil clusters on suitable terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void oil_pass(TileMap &tilemap);
 };
 
 class DeepwaterGenerationPass {
@@ -405,6 +420,67 @@ private:
 	bool is_surrounded_by_water(
 		const TileMap &tilemap, TilePos center_pos, std::uint32_t radius
 	) const;
+};
+
+class OilGenerationPass {
+private:
+	const GenerationConfig &config_;
+	Xoroshiro128PP rng_;
+	DiscreteRandomNoise noise_;
+
+public:
+	/**
+	 * @brief Construct an oil generation pass
+	 * @param config Generation configuration parameters
+	 * @param rng Random number generator for oil placement
+	 * @param noise_rng Random number generator for noise-based operations
+	 */
+	OilGenerationPass(
+		const GenerationConfig &config, Xoroshiro128PP rng,
+		Xoroshiro128PP noise_rng
+	);
+
+	/**
+	 * @brief Generate oil clusters on the tilemap
+	 * @param tilemap The tilemap to process
+	 */
+	void operator()(TileMap &tilemap);
+
+private:
+	/**
+	 * @brief Generate oil center positions using Poisson disk sampling
+	 * @param tilemap The tilemap to analyze
+	 * @return Vector of positions where oil clusters should be placed
+	 */
+	std::vector<TilePos> generate_oil_centers(const TileMap &tilemap);
+
+	/**
+	 * @brief Generate an oil cluster around a center position
+	 * @param tilemap The tilemap to modify
+	 * @param center Center position for the oil cluster
+	 */
+	void generate_oil_cluster(TileMap &tilemap, TilePos center);
+
+	/**
+	 * @brief Check if a tile is suitable for oil placement
+	 * @param tilemap The tilemap to check
+	 * @param pos Position to check
+	 * @return True if oil can be placed at this position
+	 */
+	bool is_suitable_for_oil(const TileMap &tilemap, TilePos pos) const;
+
+	/**
+	 * @brief Get biome preference multiplier for oil generation (out of 255)
+	 * @param biome The biome type to check
+	 * @return Preference value (0-255)
+	 */
+	std::uint8_t get_biome_oil_preference(BiomeType biome) const;
+
+	/**
+	 * @brief Calculate minimum distance between oil fields based on map size
+	 * @return Minimum distance in tiles
+	 */
+	std::uint32_t calculate_min_oil_distance() const;
 };
 
 /**

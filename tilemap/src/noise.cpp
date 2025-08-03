@@ -1,5 +1,6 @@
 #include "noise.h"
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <numeric>
 #include <random>
@@ -7,19 +8,23 @@
 
 namespace istd {
 
-DiscreteRandomNoise::DiscreteRandomNoise(Xoroshiro128PP rng) {
+DiscreteRandomNoise::DiscreteRandomNoise(Xoroshiro128PP rng) noexcept {
 	mask = rng.next();
 	std::iota(permutation_.begin(), permutation_.end(), 0);
 	std::shuffle(permutation_.begin(), permutation_.end(), rng);
 }
 
-std::uint8_t DiscreteRandomNoise::perm(int x) const {
+std::uint8_t DiscreteRandomNoise::perm(int x) const noexcept {
 	// Map x to [0, 255] range
 	x &= 0xFF;
 	return permutation_[x];
 }
 
-std::uint32_t DiscreteRandomNoise::map(std::uint32_t x) const {
+std::uint32_t DiscreteRandomNoise::rot8(std::uint32_t x) const noexcept {
+	return std::rotl(x, 8);
+}
+
+std::uint32_t DiscreteRandomNoise::map_once(std::uint32_t x) const noexcept {
 	std::uint8_t a = x & 0xFF;
 	std::uint8_t b = (x >> 8) & 0xFF;
 	std::uint8_t c = (x >> 16) & 0xFF;
@@ -31,9 +36,17 @@ std::uint32_t DiscreteRandomNoise::map(std::uint32_t x) const {
 	return (d << 24U) | (c << 16U) | (b << 8U) | a;
 }
 
+std::uint32_t DiscreteRandomNoise::map(std::uint32_t x) const noexcept {
+	for (int i = 0; i < 3; ++i) {
+		x = map_once(x);
+		x = rot8(x);
+	}
+	return x;
+}
+
 std::uint64_t DiscreteRandomNoise::noise(
 	std::uint32_t x, std::uint32_t y, std::uint32_t z
-) const {
+) const noexcept {
 	auto A = map(x);
 	auto B = map(y ^ A);
 	auto C = map(z ^ B);
@@ -41,6 +54,22 @@ std::uint64_t DiscreteRandomNoise::noise(
 	auto E = map(y ^ D);
 	auto F = map(x ^ E);
 	return ((static_cast<std::uint64_t>(C) << 32) | F) ^ mask;
+}
+
+DiscreteRandomNoiseStream::DiscreteRandomNoiseStream(
+	const DiscreteRandomNoise &noise, std::uint32_t x, std::uint32_t y,
+	std::uint32_t idx
+)
+	: noise_(noise), x_(x), y_(y), idx_(idx) {}
+
+std::uint64_t DiscreteRandomNoiseStream::next() noexcept {
+	std::uint64_t value = noise_.noise(x_, y_, idx_);
+	++idx_;
+	return value;
+}
+
+std::uint64_t DiscreteRandomNoiseStream::operator()() noexcept {
+	return next();
 }
 
 PerlinNoise::PerlinNoise(Xoroshiro128PP rng) {
@@ -191,8 +220,9 @@ double UniformPerlinNoise::uniform_noise(double x, double y) const {
 
 double UniformPerlinNoise::map_to_uniform(double raw_value) const {
 	// Find position in CDF using binary search
-	auto it
-		= std::lower_bound(cdf_values_.begin(), cdf_values_.end(), raw_value);
+	auto it = std::lower_bound(
+		cdf_values_.begin(), cdf_values_.end(), raw_value
+	);
 
 	// Calculate quantile (position in CDF as fraction)
 	size_t position = std::distance(cdf_values_.begin(), it);

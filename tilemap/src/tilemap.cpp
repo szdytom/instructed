@@ -1,4 +1,5 @@
 #include "tilemap.h"
+#include "chunk.h"
 #include <stdexcept>
 
 namespace istd {
@@ -29,6 +30,14 @@ const Chunk &TileMap::get_chunk(
 		throw std::out_of_range("Chunk coordinates out of bounds");
 	}
 	return chunks_[chunk_x][chunk_y];
+}
+
+Chunk &TileMap::get_chunk_of(TilePos pos) {
+	return get_chunk(pos.chunk_x, pos.chunk_y);
+}
+
+const Chunk &TileMap::get_chunk_of(TilePos pos) const {
+	return get_chunk(pos.chunk_x, pos.chunk_y);
 }
 
 Tile &TileMap::get_tile(TilePos pos) {
@@ -68,7 +77,7 @@ bool TileMap::is_at_boundary(TilePos pos) const {
 	std::uint32_t max_global = map_size * Chunk::size - 1;
 
 	return global_x == 0 || global_x == max_global || global_y == 0
-	       || global_y == max_global;
+		|| global_y == max_global;
 }
 
 std::vector<TilePos> TileMap::get_neighbors(TilePos pos, bool chebyshiv) const {

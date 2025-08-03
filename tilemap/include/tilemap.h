@@ -35,6 +35,13 @@ public:
 	const Chunk &get_chunk(std::uint8_t chunk_x, std::uint8_t chunk_y) const;
 
 	/**
+	 * @brief Get a reference to the chunk containing the given TilePos
+	 * @param pos The TilePos to get the chunk for
+	 */
+	Chunk &get_chunk_of(TilePos pos);
+	const Chunk &get_chunk_of(TilePos pos) const;
+
+	/**
 	 * @brief Get a tile at the given position
 	 * @param pos The position of the tile
 	 */

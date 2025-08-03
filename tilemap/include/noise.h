@@ -19,28 +19,55 @@ private:
 	std::uint64_t mask;
 	std::array<std::uint8_t, 256> permutation_;
 
-	std::uint8_t perm(int x) const;
-	std::uint32_t map(std::uint32_t x) const;
+	std::uint8_t perm(int x) const noexcept;
+	std::uint32_t rot8(std::uint32_t x) const noexcept;
+	std::uint32_t map_once(std::uint32_t x) const noexcept;
+	std::uint32_t map(std::uint32_t x) const noexcept;
 
 public:
 	/**
 	 * @brief Construct a DiscreteRandomNoise generator with the given seed
 	 * @param rng Random number generator for noise
 	 */
-	explicit DiscreteRandomNoise(Xoroshiro128PP rng);
-
-	DiscreteRandomNoise() = default;
+	explicit DiscreteRandomNoise(Xoroshiro128PP rng) noexcept;
 
 	/**
 	 * @brief Generate a discrete random value at the given coordinates
 	 * @param x X coordinate
 	 * @param y Y coordinate
 	 * @param z Z coordinate (optional)
-	 * @return Discrete random value between 0 and 255
+	 * @return Discrete random value between 0 and 2^64-1
 	 */
 	std::uint64_t noise(
 		std::uint32_t x, std::uint32_t y, std::uint32_t z = 0
-	) const;
+	) const noexcept;
+};
+
+class DiscreteRandomNoiseStream {
+private:
+	const DiscreteRandomNoise &noise_;
+	std::uint32_t x_;
+	std::uint32_t y_;
+	std::uint32_t idx_;
+
+public:
+	DiscreteRandomNoiseStream(
+		const DiscreteRandomNoise &noise, std::uint32_t x, std::uint32_t y,
+		std::uint32_t idx = 0
+	);
+
+	std::uint64_t next() noexcept;
+
+	// Adaption for STL RandomEngine named requirements
+	using result_type = std::uint64_t;
+	static constexpr result_type min() noexcept {
+		return std::numeric_limits<result_type>::min();
+	}
+	static constexpr result_type max() noexcept {
+		return std::numeric_limits<result_type>::max();
+	}
+	// Equivalent to next(), for STL compatibility
+	result_type operator()() noexcept;
 };
 
 class PerlinNoise {

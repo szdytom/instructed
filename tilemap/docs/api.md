@@ -51,10 +51,10 @@ struct Tile {
 ```
 
 **Base Tile Types:**
-- `Land`, `Mountain`, `Sand`, `Water`, `Ice`
+- `Land`, `Mountain`, `Sand`, `Water`, `Ice`, `Deepwater`
 
 **Surface Tile Types:**
-- `Empty`, `Wood`, `Structure`
+- `Empty`, `Oil`
 
 ### Position Types
 
@@ -90,6 +90,12 @@ struct GenerationConfig {
     int temperature_octaves = 3;
     int humidity_octaves = 3;
     int base_octaves = 3;
+    
+    // Oil generation parameters
+    double oil_density = 0.8;           // Average oil fields per chunk
+    std::uint32_t oil_cluster_min_size = 2; // Minimum tiles per cluster
+    std::uint32_t oil_cluster_max_size = 6; // Maximum tiles per cluster
+    double oil_biome_preference = 2.0;  // Multiplier for preferred biomes
 };
 ```
 

@@ -5,13 +5,18 @@
 #include <chrono>
 #include <cstdlib>
 #include <format>
-#include <iostream>
 #include <print>
 #include <string>
 
-// Get BMP color for different base tile types
-BmpColors::Color get_tile_color(istd::BaseTileType type) {
-	switch (type) {
+// Get BMP color for different tile types, considering surface tiles
+BmpColors::Color get_tile_color(const istd::Tile &tile) {
+	// Oil surface tile overrides base color
+	if (tile.surface == istd::SurfaceTileType::Oil) {
+		return BmpColors::OIL;
+	}
+
+	// Otherwise use base tile color
+	switch (tile.base) {
 	case istd::BaseTileType::Land:
 		return BmpColors::LAND;
 	case istd::BaseTileType::Mountain:
@@ -50,7 +55,7 @@ void generate_bmp(const istd::TileMap &tilemap, const std::string &filename) {
 					int global_x = chunk_x * tiles_per_chunk + tile_x;
 					int global_y = chunk_y * tiles_per_chunk + tile_y;
 
-					auto color = get_tile_color(tile.base);
+					auto color = get_tile_color(tile);
 
 					// Draw a tile_size x tile_size block
 					for (int dy = 0; dy < tile_size; ++dy) {
@@ -83,6 +88,7 @@ void print_statistics(const istd::TileMap &tilemap) {
 	int tile_counts[6] = {
 		0
 	}; // Count for each base tile type (now 6 types including Deepwater)
+	int oil_count = 0; // Count oil surface tiles
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
 
@@ -94,15 +100,20 @@ void print_statistics(const istd::TileMap &tilemap) {
 				for (int tile_y = 0; tile_y < tiles_per_chunk; ++tile_y) {
 					const auto &tile = chunk.tiles[tile_x][tile_y];
 					tile_counts[static_cast<int>(tile.base)]++;
+
+					// Count oil surface tiles
+					if (tile.surface == istd::SurfaceTileType::Oil) {
+						oil_count++;
+					}
 				}
 			}
 		}
 	}
 
-	const char *tile_names[]
-		= {"Land", "Mountain", "Sand", "Water", "Ice", "Deepwater"};
-	int total_tiles
-		= chunks_per_side * chunks_per_side * tiles_per_chunk * tiles_per_chunk;
+	const char *tile_names[] = {"Land",  "Mountain", "Sand",
+	                            "Water", "Ice",      "Deepwater"};
+	int total_tiles = chunks_per_side * chunks_per_side * tiles_per_chunk
+		* tiles_per_chunk;
 
 	std::println("\nTile Statistics:");
 	std::println("================");
@@ -112,6 +123,16 @@ void print_statistics(const istd::TileMap &tilemap) {
 			"{:>10}: {:>8} ({:.1f}%)", tile_names[i], tile_counts[i], percentage
 		);
 	}
+
+	// Print oil statistics
+	double oil_percentage = (double)oil_count / total_tiles * 100.0;
+	double oil_per_chunk = (double)oil_count
+		/ (chunks_per_side * chunks_per_side);
+	std::println(
+		"{:>10}: {:>8} ({:.1f}%, {:.2f} per chunk)", "Oil", oil_count,
+		oil_percentage, oil_per_chunk
+	);
+
 	std::println("Total tiles: {}", total_tiles);
 }
 
@@ -131,8 +152,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	istd::Seed seed
-		= istd::Seed::from_string(argc >= 2 ? argv[1] : "hello_world");
+	istd::Seed seed = istd::Seed::from_string(
+		argc >= 2 ? argv[1] : "hello_world"
+	);
 	std::string output_filename = argc >= 3 ? argv[2] : "output.bmp";
 	int chunks_per_side = 8; // Default value
 
