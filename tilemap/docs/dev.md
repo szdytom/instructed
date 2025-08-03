@@ -59,6 +59,7 @@ Terrain generation uses a multi-pass pipeline for modularity and control:
 6. **Deep Water Pass**: Places deep water areas
 7. **Oil Pass**: Generates sparse oil deposits as surface features
 8. **Mineral Cluster Pass**: Generates mineral clusters (Hematite, Titanomagnetite, Gibbsite) on mountain edges using cellular automata
+9. **Coal Pass**: Generates coal deposits using a cellular automata approach
 
 Each pass operates independently with its own RNG state, ensuring deterministic results.
 
