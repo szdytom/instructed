@@ -1,5 +1,5 @@
-#include "biome.h"
-#include "chunk.h"
+#include "tilemap/biome.h"
+#include "tilemap/chunk.h"
 #include <algorithm>
 
 namespace istd {

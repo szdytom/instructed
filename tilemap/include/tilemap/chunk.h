@@ -1,6 +1,6 @@
 #ifndef ISTD_TILEMAP_CHUNK_H
 #define ISTD_TILEMAP_CHUNK_H
-#include "tile.h"
+#include "tilemap/tile.h"
 #include <compare>
 #include <cstdint>
 #include <functional>

@@ -1,10 +1,9 @@
 #include "bmp.h"
-#include "generation.h"
-#include "tile.h"
-#include "tilemap.h"
+#include "tilemap/generation.h"
+#include "tilemap/tile.h"
+#include "tilemap/tilemap.h"
 #include <chrono>
 #include <cstdlib>
-#include <format>
 #include <print>
 #include <string>
 

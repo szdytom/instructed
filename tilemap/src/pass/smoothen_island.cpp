@@ -1,6 +1,7 @@
-#include "biome.h"
-#include "generation.h"
-#include "tile.h"
+#include "tilemap/pass/smoothen_island.h"
+#include "tilemap/biome.h"
+#include "tilemap/generation.h"
+#include "tilemap/tile.h"
 #include <algorithm>
 #include <queue>
 

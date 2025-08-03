@@ -1,7 +1,7 @@
 #ifndef ISTD_TILEMAP_NOISE_H
 #define ISTD_TILEMAP_NOISE_H
 
-#include "xoroshiro.h"
+#include "tilemap/xoroshiro.h"
 #include <array>
 #include <cstdint>
 #include <vector>

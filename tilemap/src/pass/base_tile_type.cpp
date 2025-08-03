@@ -1,6 +1,7 @@
-#include "biome.h"
-#include "chunk.h"
-#include "generation.h"
+#include "tilemap/pass/base_tile_type.h"
+#include "tilemap/biome.h"
+#include "tilemap/chunk.h"
+#include "tilemap/generation.h"
 #include <utility>
 
 namespace istd {

@@ -1,4 +1,4 @@
-#include "xoroshiro.h"
+#include "tilemap/xoroshiro.h"
 #include <bit>
 #include <initializer_list>
 #include <random>
@@ -49,8 +49,9 @@ std::uint64_t Xoroshiro128PP::next() {
 }
 
 Xoroshiro128PP Xoroshiro128PP::jump_64() const {
-	constexpr std::uint64_t JUMP_64[]
-		= {0x180ec6d33cfd0aba, 0xd5a61266f0c9392c};
+	constexpr std::uint64_t JUMP_64[] = {
+		0x180ec6d33cfd0aba, 0xd5a61266f0c9392c
+	};
 
 	Xoroshiro128PP res{seed};
 
@@ -68,8 +69,9 @@ Xoroshiro128PP Xoroshiro128PP::jump_64() const {
 }
 
 Xoroshiro128PP Xoroshiro128PP::jump_96() const {
-	constexpr std::uint64_t JUMP_96[]
-		= {0x360fd5f2cf8d5d99, 0x9c6e6877736c46e3};
+	constexpr std::uint64_t JUMP_96[] = {
+		0x360fd5f2cf8d5d99, 0x9c6e6877736c46e3
+	};
 
 	Xoroshiro128PP res{seed};
 

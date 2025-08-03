@@ -1,5 +1,6 @@
-#include "biome.h"
-#include "generation.h"
+#include "tilemap/biome.h"
+#include "tilemap/generation.h"
+#include "tilemap/pass/biome.h"
 
 namespace istd {
 

@@ -1,5 +1,5 @@
-#include "tilemap.h"
-#include "chunk.h"
+#include "tilemap/tilemap.h"
+#include "tilemap/chunk.h"
 #include <stdexcept>
 
 namespace istd {

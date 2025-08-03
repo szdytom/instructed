@@ -1,8 +1,9 @@
-#include "biome.h"
-#include "chunk.h"
-#include "generation.h"
-#include "noise.h"
-#include "xoroshiro.h"
+#include "tilemap/pass/oil.h"
+#include "tilemap/biome.h"
+#include "tilemap/chunk.h"
+#include "tilemap/generation.h"
+#include "tilemap/noise.h"
+#include "tilemap/xoroshiro.h"
 #include <algorithm>
 #include <queue>
 #include <random>

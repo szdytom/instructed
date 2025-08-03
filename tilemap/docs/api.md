@@ -140,8 +140,8 @@ BiomeType determine_biome(double temperature, double humidity);
 ### Basic Usage
 
 ```cpp
-#include "tilemap.h"
-#include "generation.h"
+#include "tilemap/tilemap.h"
+#include "tilemap/generation.h"
 
 // Create map
 istd::TileMap tilemap(4);  // 4x4 chunks

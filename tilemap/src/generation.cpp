@@ -1,4 +1,4 @@
-#include "generation.h"
+#include "tilemap/generation.h"
 
 namespace istd {
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
