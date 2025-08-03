@@ -6,34 +6,25 @@
 namespace istd {
 
 enum class BaseTileType : std::uint8_t {
+	Mountain = 0x0,
 	Land,
-	Mountain,
 	Sand,
 	Water,
 	Ice,
 	Deepwater,
-	_count
 };
 
 enum class SurfaceTileType : std::uint8_t {
-	Empty,
+	Empty = 0,
 	Oil,
 	Hematite,
 	Titanomagnetite,
 	Gibbsite,
-	_count
+
+	// Player built structures
+	// (not used in generation, but can be placed by player)
+	Structure = 0xF,
 };
-
-constexpr std::uint8_t base_tile_count = static_cast<std::uint8_t>(
-	BaseTileType::_count
-);
-
-constexpr std::uint8_t surface_tile_count = static_cast<std::uint8_t>(
-	SurfaceTileType::_count
-);
-
-static_assert(base_tile_count <= 16, "Base tile don't fit in 4 bits");
-static_assert(surface_tile_count <= 16, "Surface tile don't fit in 4 bits");
 
 struct Tile {
 	BaseTileType base : 4;
