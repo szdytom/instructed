@@ -210,6 +210,11 @@ private:
 	 */
 	void smoothen_mountains(TileMap &tilemap, std::uint32_t step_i);
 
+	void smoothen_mountains_tile(
+		const TileMap &tilemap, TilePos pos, std::uint32_t step_i,
+		std::vector<std::pair<TilePos, Tile>> &replacements
+	);
+
 public:
 	/**
 	 * @brief Construct a mountain smoothing pass

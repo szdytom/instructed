@@ -1,6 +1,7 @@
 #include "generation.h"
 #include <map>
 #include <queue>
+#include <ranges>
 #include <set>
 
 namespace istd {
@@ -156,8 +157,9 @@ std::uint32_t SmoothenMountainsPass::bfs_component_size(
 	return size;
 }
 
-void SmoothenMountainsPass::smoothen_mountains(
-	TileMap &tilemap, std::uint32_t step_i
+void SmoothenMountainsPass::smoothen_mountains_tile(
+	const TileMap &tilemap, TilePos pos, std::uint32_t step_i,
+	std::vector<std::pair<TilePos, Tile>> &replacements
 ) {
 	struct CAConf {
 		int neighbor_count;
@@ -175,6 +177,55 @@ void SmoothenMountainsPass::smoothen_mountains(
         {4, 16, 0 }
 	};
 
+	auto [global_x, global_y] = pos.to_global();
+	auto neighbors = tilemap.get_neighbors(pos);
+
+	// Ignore if adjacent to the boundary
+	if (neighbors.size() < 4) {
+		return;
+	}
+
+	// Count neighboring mountains
+	int mountain_count = 0;
+	for (const auto &neighbor : neighbors) {
+		const Tile &tile = tilemap.get_tile(neighbor);
+		if (tile.base == BaseTileType::Mountain) {
+			mountain_count += 1;
+		}
+	}
+
+	// Get the configuration for this count
+	const CAConf &conf = cellularAutomataConfigurations[mountain_count];
+	auto sample = noise_.noise(global_x, global_y, step_i);
+	auto rd = sample & 0xF;
+	auto sel = sample >> 4;
+
+	Tile tile = tilemap.get_tile(pos);
+	if (tile.base == BaseTileType::Mountain && conf.remove_chance > rd) {
+		auto filterer = [&tilemap](const TilePos &p) {
+			auto neighbor_tile = tilemap.get_tile(p);
+			return neighbor_tile.base != BaseTileType::Mountain;
+		};
+		auto non_mountain_neighbors = neighbors | std::views::filter(filterer)
+			| std::ranges::to<std::vector>();
+
+		if (!non_mountain_neighbors.empty()) {
+			auto n = non_mountain_neighbors.size();
+			auto replacement = non_mountain_neighbors[sel % n];
+			tile.base = tilemap.get_tile(replacement).base;
+			replacements.emplace_back(pos, tile);
+		}
+	} else if (tile.base != BaseTileType::Mountain && conf.fill_chance > rd) {
+		tile.base = BaseTileType::Mountain;
+		replacements.emplace_back(pos, tile);
+	}
+}
+
+void SmoothenMountainsPass::smoothen_mountains(
+	TileMap &tilemap, std::uint32_t step_i
+) {
+	std::vector<std::pair<TilePos, Tile>> replacements;
+
 	for (std::uint8_t chunk_x = 0; chunk_x < tilemap.get_size(); ++chunk_x) {
 		for (std::uint8_t chunk_y = 0; chunk_y < tilemap.get_size();
 		     ++chunk_y) {
@@ -182,39 +233,14 @@ void SmoothenMountainsPass::smoothen_mountains(
 				for (std::uint8_t local_y = 0; local_y < Chunk::size;
 				     ++local_y) {
 					TilePos pos{chunk_x, chunk_y, local_x, local_y};
-					auto [global_x, global_y] = pos.to_global();
-					auto neighbors = tilemap.get_neighbors(pos);
-
-					// Ignore if adjacent to the boundary
-					if (neighbors.size() < 4) {
-						continue;
-					}
-
-					// Count neighboring mountains
-					int mountain_count = 0;
-					for (const auto &neighbor : neighbors) {
-						const Tile &tile = tilemap.get_tile(neighbor);
-						if (tile.base == BaseTileType::Mountain) {
-							mountain_count += 1;
-						}
-					}
-
-					// Get the configuration for this count
-					const CAConf &conf
-						= cellularAutomataConfigurations[mountain_count];
-					int rd = noise_.noise(global_x, global_y, step_i) & 0xF;
-
-					Tile &tile = tilemap.get_tile(pos);
-					if (tile.base == BaseTileType::Mountain
-					    && conf.remove_chance > rd) {
-						demountainize(tilemap, {pos});
-					} else if (tile.base != BaseTileType::Mountain
-					           && conf.fill_chance > rd) {
-						tile.base = BaseTileType::Mountain;
-					}
+					smoothen_mountains_tile(tilemap, pos, step_i, replacements);
 				}
 			}
 		}
+	}
+
+	for (const auto &[pos, new_tile] : replacements) {
+		tilemap.set_tile(pos, new_tile);
 	}
 }
 
