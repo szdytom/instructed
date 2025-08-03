@@ -93,7 +93,8 @@ bool DeepwaterGenerationPass::is_surrounded_by_water(
 			if (check_x < 0 || check_y < 0
 			    || check_x >= static_cast<std::int32_t>(max_global_coord)
 			    || check_y >= static_cast<std::int32_t>(max_global_coord)) {
-				return false; // Out of bounds, consider as non-water
+				// Out of bounds, consider as water
+				continue;
 			}
 
 			// Convert back to TilePos and check if it's water
