@@ -166,3 +166,5 @@ istd::BiomeType biome = chunk.get_biome(sub_pos);
 const auto& props = istd::get_biome_properties(biome);
 std::cout << "Biome: " << props.name << std::endl;
 ```
+
+<!-- DO NOT LIST INTERNAL API HERE -->
