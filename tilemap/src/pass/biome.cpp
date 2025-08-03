@@ -23,24 +23,26 @@ void BiomeGenerationPass::operator()(TileMap &tilemap) {
 	// Generate biomes for each sub-chunk
 	for (std::uint8_t chunk_x = 0; chunk_x < map_size; ++chunk_x) {
 		for (std::uint8_t chunk_y = 0; chunk_y < map_size; ++chunk_y) {
-			Chunk &chunk = tilemap.get_chunk(chunk_x, chunk_y);
+			auto &chunk = tilemap.get_chunk(chunk_x, chunk_y);
 
 			for (std::uint8_t sub_x = 0; sub_x < Chunk::subchunk_count;
 			     ++sub_x) {
 				for (std::uint8_t sub_y = 0; sub_y < Chunk::subchunk_count;
 				     ++sub_y) {
 					// Calculate global position for this sub-chunk's center
-					auto [start_x, start_y]
-						= subchunk_to_tile_start(SubChunkPos(sub_x, sub_y));
-					double global_x = chunk_x * Chunk::size + start_x
-					                  + Chunk::subchunk_size / 2;
+					auto [start_x, start_y] = subchunk_to_tile_start(
+						{sub_x, sub_y}
+					);
 
+					double global_x = chunk_x * Chunk::size + start_x
+						+ (Chunk::subchunk_size >> 1);
 					double global_y = chunk_y * Chunk::size + start_y
-					                  + Chunk::subchunk_size / 2;
+						+ (Chunk::subchunk_size >> 1);
 
 					// Get climate values
-					auto [temperature, humidity]
-						= get_climate(global_x, global_y);
+					auto [temperature, humidity] = get_climate(
+						global_x, global_y
+					);
 
 					// Determine biome and store directly in chunk
 					BiomeType biome = determine_biome(temperature, humidity);

@@ -7,7 +7,7 @@ AlignConsecutiveAssignments: None
 AlignConsecutiveBitFields: None
 AlignConsecutiveDeclarations: None
 AlignEscapedNewlines: Left
-AlignOperands: Align
+AlignOperands: DontAlign
 AlignTrailingComments:
   Kind: Always
   OverEmptyLines: 2

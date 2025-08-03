@@ -1,8 +1,6 @@
 #include "biome.h"
 #include "chunk.h"
 #include <algorithm>
-#include <array>
-#include <cmath>
 
 namespace istd {
 

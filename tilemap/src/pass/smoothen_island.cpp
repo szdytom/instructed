@@ -57,14 +57,14 @@ void SmoothenIslandPass::remove_small_island(TileMap &tilemap) {
 						tilemap, pos, visited, component_positions
 					);
 
-					// If the component touches the boundary, skip it
-					bool touches_boundary = false;
-					for (auto component_pos : component_positions) {
-						if (tilemap.is_at_boundary(component_pos)) {
-							touches_boundary = true;
-							break;
-						}
-					}
+					// Check if this component touches the boundary
+					auto boundary_checker =
+						[&tilemap](const TilePos &component_pos) {
+						return tilemap.is_at_boundary(component_pos);
+					};
+					bool touches_boundary = std::ranges::any_of(
+						component_positions, boundary_checker
+					);
 
 					// Skip if it touches the boundary
 					if (touches_boundary) {

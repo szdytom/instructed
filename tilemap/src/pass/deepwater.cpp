@@ -21,8 +21,9 @@ void DeepwaterGenerationPass::operator()(TileMap &tilemap) {
 				     ++sub_y) {
 					SubChunkPos sub_pos(sub_x, sub_y);
 					BiomeType biome = chunk.get_biome(sub_pos);
-					const BiomeProperties &properties
-						= get_biome_properties(biome);
+					const BiomeProperties &properties = get_biome_properties(
+						biome
+					);
 
 					// Only process ocean biomes
 					if (!properties.is_ocean) {
@@ -83,10 +84,10 @@ bool DeepwaterGenerationPass::is_surrounded_by_water(
 	     dx <= static_cast<std::int32_t>(radius); ++dx) {
 		for (std::int32_t dy = -static_cast<std::int32_t>(radius);
 		     dy <= static_cast<std::int32_t>(radius); ++dy) {
-			std::int32_t check_x
-				= static_cast<std::int32_t>(center_global_x) + dx;
-			std::int32_t check_y
-				= static_cast<std::int32_t>(center_global_y) + dy;
+			std::int32_t check_x = static_cast<std::int32_t>(center_global_x)
+				+ dx;
+			std::int32_t check_y = static_cast<std::int32_t>(center_global_y)
+				+ dy;
 
 			// Check bounds
 			if (check_x < 0 || check_y < 0

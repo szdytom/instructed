@@ -1,4 +1,5 @@
 #include "generation.h"
+#include <algorithm>
 #include <queue>
 
 namespace istd {
@@ -44,13 +45,13 @@ void MountainHoleFillPass::operator()(TileMap &tilemap) {
 					);
 
 					// Check if this component touches the boundary
-					bool touches_boundary = false;
-					for (const auto component_pos : component_positions) {
-						if (tilemap.is_at_boundary(component_pos)) {
-							touches_boundary = true;
-							break;
-						}
-					}
+					auto boundary_checker =
+						[&tilemap](const TilePos &component_pos) {
+						return tilemap.is_at_boundary(component_pos);
+					};
+					bool touches_boundary = std::ranges::any_of(
+						component_positions, boundary_checker
+					);
 
 					// Fill small holes that don't touch the boundary
 					if (!touches_boundary
