@@ -160,22 +160,41 @@ Each biome defines terrain generation ratios:
 
 To add a new generation pass:
 
-1. **Create Pass Implementation**: Add new file in `src/pass/`
-2. **Add to Pipeline**: Update `TerrainGenerator::operator()`
-3. **RNG Management**: Use jump functions for independent RNG streams
-4. **Configuration**: Add parameters to `GenerationConfig` if needed
+1. **Create Pass Declaration**: Add a header file in `include/tilemap/pass/`, declaring a Pass class (e.g., `MyCustomPass`) that overloads `void operator()(TileMap &tilemap)`. See existing passes for structure and required members.
+2. **Create Pass Implementation**: Add the corresponding implementation file in `src/tilemap/pass/`, implementing the declared class and its methods.
+3. **Add to Pipeline**: Update `TerrainGenerator::operator()` to invoke your new pass in the desired order.
+4. **RNG Management**: Use jump functions to create an independent RNG stream for your pass, ensuring deterministic results. Pass the RNG to your class constructor as needed.
+5. **Configuration**: If your pass requires configuration parameters, add them to `GenerationConfig` and pass them to your class.
 
-Example pass structure:
+**Example header (include/tilemap/pass/my_custom_pass.h):**
 ```cpp
-void TerrainGenerator::my_custom_pass(TileMap &tilemap) {
-    auto rng = master_rng_.jump_96();  // Independent RNG stream
-    
-    // Process tilemap...
-    for (auto chunk_y = 0; chunk_y < tilemap.get_size(); ++chunk_y) {
-        for (auto chunk_x = 0; chunk_x < tilemap.get_size(); ++chunk_x) {
-            auto& chunk = tilemap.get_chunk(chunk_x, chunk_y);
-            // Process chunk...
-        }
-    }
+class MyCustomPass {
+public:
+    MyCustomPass(const GenerationConfig &config, Xoroshiro128PP rng);
+    void operator()(TileMap &tilemap);
+    // ...other methods as needed...
+};
+```
+
+**Example implementation (src/tilemap/pass/my_custom_pass.cpp):**
+```cpp
+MyCustomPass::MyCustomPass(const GenerationConfig &config, Xoroshiro128PP rng)
+    : config_(config), rng_(rng) {}
+
+void MyCustomPass::operator()(TileMap &tilemap) {
+    // Process tilemap using config_ and rng_
+    // ...implementation...
 }
 ```
+
+**Pipeline integration:**
+```cpp
+void TerrainGenerator::operator()(TileMap &tilemap) {
+    // ...existing passes...
+    MyCustomPass custom_pass(config_, master_rng_.jump_96());
+    custom_pass(tilemap);
+    // ...other passes...
+}
+```
+
+Refer to existing passes in `include/tilemap/pass/` and `src/tilemap/pass/` for detailed structure, member variables, and best practices.
