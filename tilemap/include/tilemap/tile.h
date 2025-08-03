@@ -18,6 +18,9 @@ enum class BaseTileType : std::uint8_t {
 enum class SurfaceTileType : std::uint8_t {
 	Empty,
 	Oil,
+	Hematite,
+	Titanomagnetite,
+	Gibbsite,
 	_count
 };
 

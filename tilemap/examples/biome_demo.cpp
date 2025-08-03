@@ -9,12 +9,22 @@
 
 // Get BMP color for different tile types, considering surface tiles
 BmpColors::Color get_tile_color(const istd::Tile &tile) {
-	// Oil surface tile overrides base color
-	if (tile.surface == istd::SurfaceTileType::Oil) {
+	// Surface tiles override base color
+	switch (tile.surface) {
+	case istd::SurfaceTileType::Oil:
 		return BmpColors::OIL;
+	case istd::SurfaceTileType::Hematite:
+		return BmpColors::HEMATITE;
+	case istd::SurfaceTileType::Titanomagnetite:
+		return BmpColors::TITANOMAGNETITE;
+	case istd::SurfaceTileType::Gibbsite:
+		return BmpColors::GIBBSITE;
+	case istd::SurfaceTileType::Empty:
+	default:
+		break; // Fall through to base tile color
 	}
 
-	// Otherwise use base tile color
+	// Use base tile color
 	switch (tile.base) {
 	case istd::BaseTileType::Land:
 		return BmpColors::LAND;
@@ -87,7 +97,11 @@ void print_statistics(const istd::TileMap &tilemap) {
 	int tile_counts[6] = {
 		0
 	}; // Count for each base tile type (now 6 types including Deepwater)
-	int oil_count = 0; // Count oil surface tiles
+	int oil_count = 0;             // Count oil surface tiles
+	int hematite_count = 0;        // Count hematite surface tiles
+	int titanomagnetite_count = 0; // Count titanomagnetite surface tiles
+	int gibbsite_count = 0;        // Count gibbsite surface tiles
+	int mountain_edge_count = 0;   // Count mountain edge tiles
 	const int chunks_per_side = tilemap.get_size();
 	const int tiles_per_chunk = istd::Chunk::size;
 
@@ -100,9 +114,42 @@ void print_statistics(const istd::TileMap &tilemap) {
 					const auto &tile = chunk.tiles[tile_x][tile_y];
 					tile_counts[static_cast<int>(tile.base)]++;
 
-					// Count oil surface tiles
-					if (tile.surface == istd::SurfaceTileType::Oil) {
+					// Count surface tiles
+					switch (tile.surface) {
+					case istd::SurfaceTileType::Oil:
 						oil_count++;
+						break;
+					case istd::SurfaceTileType::Hematite:
+						hematite_count++;
+						break;
+					case istd::SurfaceTileType::Titanomagnetite:
+						titanomagnetite_count++;
+						break;
+					case istd::SurfaceTileType::Gibbsite:
+						gibbsite_count++;
+						break;
+					default:
+						break;
+					}
+
+					// Count mountain edge tiles for mineral statistics
+					if (tile.base == istd::BaseTileType::Mountain) {
+						istd::TilePos pos(chunk_x, chunk_y, tile_x, tile_y);
+						auto neighbors = tilemap.get_neighbors(pos);
+						bool is_edge = false;
+						for (const auto neighbor_pos : neighbors) {
+							const auto &neighbor_tile = tilemap.get_tile(
+								neighbor_pos
+							);
+							if (neighbor_tile.base
+							    != istd::BaseTileType::Mountain) {
+								is_edge = true;
+								break;
+							}
+						}
+						if (is_edge) {
+							mountain_edge_count++;
+						}
 					}
 				}
 			}
@@ -123,16 +170,58 @@ void print_statistics(const istd::TileMap &tilemap) {
 		);
 	}
 
+	std::println("\nSurface Resource Statistics:");
+	std::println("============================");
+
 	// Print oil statistics
 	double oil_percentage = (double)oil_count / total_tiles * 100.0;
 	double oil_per_chunk = (double)oil_count
 		/ (chunks_per_side * chunks_per_side);
 	std::println(
-		"{:>10}: {:>8} ({:.1f}%, {:.2f} per chunk)", "Oil", oil_count,
+		"{:>15}: {:>8} ({:.3f}%, {:.2f} per chunk)", "Oil", oil_count,
 		oil_percentage, oil_per_chunk
 	);
 
-	std::println("Total tiles: {}", total_tiles);
+	// Print mineral statistics
+	auto print_mineral_stats = [&](const char *name, int count) {
+		double percentage = (double)count / total_tiles * 100.0;
+		double per_chunk = (double)count / (chunks_per_side * chunks_per_side);
+		std::println(
+			"{:>15}: {:>8} ({:.3f}%, {:.2f} per chunk)", name, count,
+			percentage, per_chunk
+		);
+	};
+
+	print_mineral_stats("Hematite", hematite_count);
+	print_mineral_stats("Titanomagnetite", titanomagnetite_count);
+	print_mineral_stats("Gibbsite", gibbsite_count);
+
+	// Mountain edge statistics for mineral context
+	int mountain_count = tile_counts[static_cast<int>(
+		istd::BaseTileType::Mountain
+	)];
+	if (mountain_count > 0) {
+		double edge_percentage = (double)mountain_edge_count / mountain_count
+			* 100.0;
+		std::println(
+			"{:>15}: {:>8} ({:.1f}% of mountains)", "Mountain edges",
+			mountain_edge_count, edge_percentage
+		);
+
+		// Calculate mineral coverage on mountain edges
+		int total_minerals = hematite_count + titanomagnetite_count
+			+ gibbsite_count;
+		if (mountain_edge_count > 0) {
+			double mineral_coverage = (double)total_minerals
+				/ mountain_edge_count * 100.0;
+			std::println(
+				"\n{:>15}: {:.2f}% of mountain edges", "Mineral coverage",
+				mineral_coverage
+			);
+		}
+	}
+
+	std::println("\nTotal tiles: {}", total_tiles);
 }
 
 int main(int argc, char *argv[]) {

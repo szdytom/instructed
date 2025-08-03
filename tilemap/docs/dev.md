@@ -30,7 +30,8 @@ tilemap/
 │       ├── smoothen_island.cpp # Island smoothing
 │       ├── mountain_hole_fill.cpp # Hole filling
 │       ├── deepwater.cpp       # Deep water placement
-│       └── oil.cpp             # Oil resource generation
+│       ├── oil.cpp             # Oil resource generation
+│       └── mineral_cluster.cpp  # Mineral cluster generation
 ├── examples/         # Usage examples
 └── docs/            # Documentation
 ```
@@ -57,6 +58,7 @@ Terrain generation uses a multi-pass pipeline for modularity and control:
 5. **Hole Fill Pass**: Fills small terrain holes
 6. **Deep Water Pass**: Places deep water areas
 7. **Oil Pass**: Generates sparse oil deposits as surface features
+8. **Mineral Cluster Pass**: Generates mineral clusters (Hematite, Titanomagnetite, Gibbsite) on mountain edges using cellular automata
 
 Each pass operates independently with its own RNG state, ensuring deterministic results.
 
@@ -91,13 +93,13 @@ Several passes use BFS (Breadth-First Search) for terrain analysis:
 - **Hole Filling**: Identify and fill isolated terrain holes
 - Components touching map boundaries are preserved
 
-### Oil Resource Generation
+### Resource Generation
 
-The oil generation pass creates sparse resource deposits:
+The oil generation pass and mineral generation pass creates sparse resource deposits:
 - **Poisson Disk Sampling**: Ensures minimum distance between oil fields
 - **Biome Preference**: Higher probability in desert and plains biomes
-- **Cluster Growth**: Random walk creates 2-6 tile clusters
-- **Surface Placement**: Oil appears as surface features on land/sand tiles
+- **Cluster Growth**: Random walk creates larger tile clusters
+- **Surface Placement**: Oil appears as surface features on land/sand tiles, Minerals on mountain edges
 
 ## Random Number Generation
 

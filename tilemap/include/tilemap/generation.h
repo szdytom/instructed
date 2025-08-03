@@ -45,6 +45,18 @@ struct GenerationConfig {
 	                                       // (should be <= 24)
 	std::uint8_t oil_base_probe = 128;     // Biome preference multiplier (out
 	                                       // of 255)
+
+	// Mineral cluster generation parameters
+	std::uint16_t hematite_density = 450;        // ~1.8 per chunk (out of 255)
+	std::uint16_t titanomagnetite_density = 300; // ~1.2 per chunk (out of 255)
+	std::uint16_t gibbsite_density = 235;        // ~0.9 per chunk (out of 255)
+
+	std::uint8_t mineral_cluster_min_size = 2;   // Minimum tiles per mineral
+	                                             // cluster
+	std::uint8_t mineral_cluster_max_size = 5;   // Maximum tiles per mineral
+	                                             // cluster
+	std::uint8_t mineral_base_probe = 192;       // Base probability for mineral
+	                                             // placement
 };
 
 // Terrain generator class that manages the generation process
@@ -108,6 +120,12 @@ private:
 	 * @param tilemap The tilemap to process
 	 */
 	void oil_pass(TileMap &tilemap);
+
+	/**
+	 * @brief Generate mineral clusters on suitable terrain
+	 * @param tilemap The tilemap to process
+	 */
+	void mineral_cluster_pass(TileMap &tilemap);
 };
 /**
  * @brief Generate a tilemap using the new biome-based system

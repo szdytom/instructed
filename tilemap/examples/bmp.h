@@ -236,6 +236,11 @@ constexpr Color WATER(30, 144, 255);   // Dodger blue
 constexpr Color ICE(176, 224, 230);    // Powder blue
 constexpr Color DEEPWATER(0, 0, 139);  // Dark blue
 constexpr Color OIL(0, 0, 0);          // Black
+
+// Mineral colors
+constexpr Color HEMATITE(255, 0, 0);          // Red
+constexpr Color TITANOMAGNETITE(128, 0, 128); // Purple
+constexpr Color GIBBSITE(255, 255, 0);        // Yellow
 } // namespace BmpColors
 
 #endif // BMP_H
