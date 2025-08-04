@@ -1,0 +1,34 @@
+#include "istd_util/vec2.h"
+#include <cassert>
+using namespace istd;
+
+int main() {
+	Vec2 v1(3.0f, 4.0f);
+	Vec2 v2(1.0f, 2.0f);
+
+	// Test length and length_squared
+	assert(v1.length() == 5.0f);
+	assert(v1.length_squared() == 25.0f);
+
+	// Test normalized
+	Vec2 n = v1.normalized();
+	assert(std::abs(n.length() - 1.0f) < 1e-6);
+
+	// Test addition and subtraction
+	Vec2 v3 = v1 + v2;
+	assert(v3.x == 4.0f && v3.y == 6.0f);
+	Vec2 v4 = v1 - v2;
+	assert(v4.x == 2.0f && v4.y == 2.0f);
+
+	// Test dot and cross
+	assert(dot(v1, v2) == 11.0f);
+	assert(cross(v1, v2) == 2.0f);
+
+	// Test floor and round
+	Vec2 v5(1.7f, -2.3f);
+	auto f = v5.floor();
+	auto r = v5.round();
+	assert(f == std::make_tuple(1, -3));
+	assert(r == std::make_tuple(2, -2));
+	return 0;
+}
