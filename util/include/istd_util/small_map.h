@@ -21,6 +21,7 @@ namespace istd {
  * @tparam T_Value Type of the value.
  */
 template<typename T_Key, typename T_Value>
+requires std::totally_ordered<T_Key>
 class SmallMap {
 	/**
 	 * @brief Internal entry structure for key-value pairs.
