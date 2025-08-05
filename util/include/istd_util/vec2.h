@@ -28,10 +28,12 @@ struct Vec2 {
 	 * @param y Y component
 	 */
 	Vec2(float x, float y) noexcept;
+
 	/**
 	 * @brief Returns a zero vector (0, 0).
 	 */
 	static Vec2 zero() noexcept;
+
 	/**
 	 * @brief Returns a vector rotated by the given angle.
 	 * @param rad Angle in radians
@@ -40,9 +42,15 @@ struct Vec2 {
 	static Vec2 rotated(float rad, float len = 1.0) noexcept;
 
 	/**
-	 * @name Symmetric operations
-	 * @{
+	 * @brief Returns a vector with infinite components.
 	 */
+	static Vec2 inf() noexcept;
+
+	/**
+	 * @brief Returns a vector with NaN components.
+	 */
+	static Vec2 invalid() noexcept;
+
 	/**
 	 * @brief Vector addition.
 	 */
@@ -67,12 +75,7 @@ struct Vec2 {
 	 * @brief Three-way comparison operator.
 	 */
 	friend std::strong_ordering operator<=>(Vec2 a, Vec2 b) noexcept;
-	/** @} */
 
-	/**
-	 * @name Assignment operations
-	 * @{
-	 */
 	/**
 	 * @brief Adds another vector to this vector.
 	 */
@@ -89,7 +92,6 @@ struct Vec2 {
 	 * @brief Divides this vector by a scalar.
 	 */
 	Vec2 &operator/=(float k) noexcept;
-	/** @} */
 
 	/**
 	 * @brief Access vector components by index.
@@ -124,21 +126,30 @@ struct Vec2 {
 	}
 
 	/**
+	 * @brief Checks if the vector is valid (not NaN).
+	 */
+	bool is_valid(this const Vec2 self) noexcept;
+
+	/**
 	 * @brief Returns the length (magnitude) of the vector.
 	 */
 	float length(this const Vec2 self) noexcept;
+
 	/**
 	 * @brief Returns the squared length of the vector.
 	 */
 	float length_squared(this const Vec2 self) noexcept;
+
 	/**
 	 * @brief Returns a normalized (unit length) vector.
 	 */
 	Vec2 normalized(this const Vec2 self) noexcept;
+
 	/**
 	 * @brief Returns a tuple of floored components.
 	 */
 	std::tuple<int, int> floor(this const Vec2 self) noexcept;
+
 	/**
 	 * @brief Returns a tuple of rounded components.
 	 */
@@ -147,11 +158,12 @@ struct Vec2 {
 	/**
 	 * @brief Returns the dot product of two vectors.
 	 */
-	friend float dot(Vec2 a, Vec2 b) noexcept;
+	static float dot(Vec2 a, Vec2 b) noexcept;
+
 	/**
 	 * @brief Returns the cross product of two vectors.
 	 */
-	friend float cross(Vec2 a, Vec2 b) noexcept;
+	static float cross(Vec2 a, Vec2 b) noexcept;
 };
 
 } // namespace istd

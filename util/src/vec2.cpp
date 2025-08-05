@@ -7,11 +7,25 @@ namespace istd {
 Vec2::Vec2(float x_, float y_) noexcept: x(x_), y(y_) {}
 
 Vec2 Vec2::zero() noexcept {
-	return Vec2(0.0f, 0.0f);
+	return {0.0f, 0.0f};
 }
 
 Vec2 Vec2::rotated(float rad, float len) noexcept {
-	return Vec2(std::cos(rad) * len, std::sin(rad) * len);
+	return {std::cos(rad) * len, std::sin(rad) * len};
+}
+
+Vec2 Vec2::inf() noexcept {
+	return Vec2(
+		std::numeric_limits<float>::infinity(),
+		std::numeric_limits<float>::infinity()
+	);
+}
+
+Vec2 Vec2::invalid() noexcept {
+	return Vec2(
+		std::numeric_limits<float>::quiet_NaN(),
+		std::numeric_limits<float>::quiet_NaN()
+	);
 }
 
 Vec2 operator+(Vec2 a, Vec2 b) noexcept {
@@ -74,6 +88,10 @@ Vec2 &Vec2::operator/=(float k) noexcept {
 	return *this;
 }
 
+bool Vec2::is_valid(this const Vec2 self) noexcept {
+	return !std::isnan(self.x) && !std::isnan(self.y);
+}
+
 float Vec2::length(this const Vec2 self) noexcept {
 	return std::sqrt(self.x * self.x + self.y * self.y);
 }
@@ -104,11 +122,11 @@ std::tuple<int, int> Vec2::round(this const Vec2 self) noexcept {
 	);
 }
 
-float dot(Vec2 a, Vec2 b) noexcept {
+float Vec2::dot(Vec2 a, Vec2 b) noexcept {
 	return a.x * b.x + a.y * b.y;
 }
 
-float cross(Vec2 a, Vec2 b) noexcept {
+float Vec2::cross(Vec2 a, Vec2 b) noexcept {
 	return a.x * b.y - a.y * b.x;
 }
 
