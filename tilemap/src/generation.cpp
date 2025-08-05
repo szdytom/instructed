@@ -2,9 +2,10 @@
 
 namespace istd {
 TerrainGenerator::TerrainGenerator(const GenerationConfig &config)
-	: config_(config), master_rng_(config.seed) {}
+	: config_(config) {}
 
 void TerrainGenerator::operator()(TileMap &tilemap) {
+	master_rng_ = Xoroshiro128PP(config_.seed);
 	biome_pass(tilemap);
 	base_tile_type_pass(tilemap);
 	smoothen_mountains_pass(tilemap);

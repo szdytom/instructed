@@ -70,7 +70,7 @@ struct GenerationConfig {
 // Terrain generator class that manages the generation process
 class TerrainGenerator {
 private:
-	GenerationConfig config_;
+	const GenerationConfig &config_;
 	Xoroshiro128PP master_rng_;
 
 public:
