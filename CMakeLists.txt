@@ -16,3 +16,6 @@ add_subdirectory(util)
 
 # Add tilemap library and examples
 add_subdirectory(tilemap)
+
+# Add server core library
+add_subdirectory(core)
