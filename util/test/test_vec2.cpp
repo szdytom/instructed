@@ -1,5 +1,6 @@
 #include "istd_util/vec2.h"
 #include <cassert>
+#include <cmath>
 using namespace istd;
 
 int main() {

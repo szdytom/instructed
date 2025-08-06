@@ -56,5 +56,43 @@ int main() {
 	assert(result.size() == 1);
 	assert(result[0] == std::make_tuple(7, 8));
 
+	// Test tile_segment_intersection: horizontal segment
+	p1 = Vec2(0.5f, 1.2f);
+	p2 = Vec2(0.5f, 4.8f);
+	{
+		Vec2 inter = tile_segment_intersection(p1, p2, {0, 2});
+		assert(inter.is_valid());
+		assert(std::abs(inter.x - 0.5f) < 1e-6);
+		assert(inter.y >= 2.0f && inter.y <= 3.0f);
+	}
+
+	// Test tile_segment_intersection: diagonal segment
+	p1 = Vec2(1.1f, 1.1f);
+	p2 = Vec2(3.9f, 3.9f);
+	{
+		Vec2 inter = tile_segment_intersection(p1, p2, {2, 2});
+		assert(inter.is_valid());
+		assert(inter.x >= 2.0f && inter.x <= 3.0f);
+		assert(inter.y >= 2.0f && inter.y <= 3.0f);
+	}
+
+	// Test tile_segment_intersection: no intersection
+	p1 = Vec2(0.0f, 0.0f);
+	p2 = Vec2(0.5f, 0.5f);
+	{
+		Vec2 inter = tile_segment_intersection(p1, p2, {2, 2});
+		assert(!inter.is_valid());
+	}
+
+	// Test tile_segment_intersection: segment starts inside tile
+	p1 = Vec2(2.2f, 2.2f);
+	p2 = Vec2(5.0f, 5.0f);
+	{
+		Vec2 inter = tile_segment_intersection(p1, p2, {2, 2});
+		assert(inter.is_valid());
+		assert(std::abs(inter.x - 2.2f) < 1e-6);
+		assert(std::abs(inter.y - 2.2f) < 1e-6);
+	}
+
 	return 0;
 }
