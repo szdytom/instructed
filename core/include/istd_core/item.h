@@ -16,7 +16,7 @@ consteval std::uint32_t id_string(const char *str) {
 	return id;
 }
 
-enum class Item : std::uint32_t {
+enum class ItemType : std::uint32_t {
 	Null = 0,
 
 	// Materials

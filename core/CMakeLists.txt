@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.27)
 
 set(ISTD_CORE_SRC
+	src/devices/vehicle.cpp
+	src/device.cpp
 	src/room.cpp
+	src/system.cpp
+	src/unit.cpp
+	src/world.cpp
 )
 
 add_library(istd_core STATIC ${ISTD_CORE_SRC})

@@ -30,13 +30,14 @@ public:
 
 struct DevicePrototype {
 	std::string_view name;
-	RegSetStrategy *reg_set_strategy; // life cycle: static
+	const RegSetStrategy *reg_set_strategy; // life cycle: static
 	std::uint32_t mass;
-	ItemPort input_n, output_n;       // number of input/output ports
+	ItemType item;              // item type this device is built from
+	ItemPort input_n, output_n; // number of input/output ports
 };
 
 struct DevicePrototypeComponent {
-	DevicePrototype *prototype; // life cycle: static
+	const DevicePrototype *prototype; // life cycle: static
 };
 
 struct DeviceIdComponent {
@@ -49,18 +50,27 @@ struct DeviceBuilder {
 		World &world, entt::entity unit, DeviceId device_id
 	) const
 		= 0;
+
+	// No virtual destructor: static lifetime and no member variables is the
+	// intended use case
 };
 
-struct DeviceBuilderRegistry {
-	static DeviceBuilderRegistry &instance();
+class DeviceBuilderRegistry {
+public:
+	static DeviceBuilderRegistry &instance() noexcept;
 
-	void register_builder(Item item, DeviceBuilder *builder);
+	void register_builder(ItemType item, const DeviceBuilder *builder);
+
 	entt::entity build(
-		World &world, Item item, entt::entity unit, DeviceId device_id
+		World &world, ItemType item, entt::entity unit, DeviceId device_id
 	) const;
 
+	struct Registar {
+		Registar(ItemType item, const DeviceBuilder *builder);
+	};
+
 private:
-	SmallMap<Item, DeviceBuilder *> builders_;
+	SmallMap<ItemType, const DeviceBuilder *> builders_;
 };
 
 } // namespace istd

@@ -35,6 +35,16 @@ struct DeviceStackComponent {
 	std::vector<entt::entity> devices;
 };
 
+/**
+ * @brief Flag component to indicate that the unit is on the ground.
+ */
+struct OnGroundFlag {};
+
+/**
+ * @brief Flag component to indicate that the unit is in the air.
+ */
+struct AirborneFlag {};
+
 } // namespace istd
 
 #endif

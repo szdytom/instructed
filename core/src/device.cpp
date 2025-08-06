@@ -15,22 +15,30 @@ bool RegSetStrategy::write(
 	return false;
 }
 
-DeviceBuilderRegistry &DeviceBuilderRegistry::instance() {
+DeviceBuilderRegistry &DeviceBuilderRegistry::instance() noexcept {
 	static DeviceBuilderRegistry registry;
 	return registry;
 }
 
 void DeviceBuilderRegistry::register_builder(
-	Item item, DeviceBuilder *builder
+	ItemType item, const DeviceBuilder *builder
 ) {
 	builders_.insert(item, builder);
 }
 
 entt::entity DeviceBuilderRegistry::build(
-	World &world, Item item, entt::entity unit, DeviceId device_id
+	World &world, ItemType item, entt::entity unit, DeviceId device_id
 ) const {
 	auto builder = builders_[item];
-	return builder->build(world, unit, device_id);
+	auto entity = builder->build(world, unit, device_id);
+	world.registry.emplace<DeviceIdComponent>(entity, unit, device_id);
+	return entity;
+}
+
+DeviceBuilderRegistry::Registar::Registar(
+	ItemType item, const DeviceBuilder *builder
+) {
+	DeviceBuilderRegistry::instance().register_builder(item, builder);
 }
 
 } // namespace istd
