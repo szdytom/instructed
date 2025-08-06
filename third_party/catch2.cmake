@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.27)
 cmake_policy(VERSION 3.27)
 include(FetchContent)
 
+IF(BUILD_TESTS)
+
 # Catch2 third-party library setup
 message(STATUS "Downloading Catch2...")
 FetchContent_Declare(
@@ -10,3 +12,5 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 message(STATUS "Catch2 ready")
+
+endif()
